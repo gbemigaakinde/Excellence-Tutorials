@@ -553,13 +553,21 @@
                 ${opt}
               </label>`).join('')}
           </div>
-          <div class="flex justify-between mt-8">
-            <button onclick="prevQuestion()" ${exam.current===0 && exam.questionIndex===0 ? 'disabled' : ''} class="btn">Previous</button>
-            ${exam.current === exam.subjects.length-1 && exam.questionIndex === 39 ?
-              `<button onclick="finishExam()" class="btn">Submit Exam</button>` :
-              `<button onclick="nextQuestion()" class="btn">Next</button>`
-            }
-          </div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+  <button onclick="prevQuestion()" ${exam.current===0 && exam.questionIndex===0 ? 'disabled' : ''} class="btn md:col-start-1">
+    ← Previous
+  </button>
+
+  <button onclick="confirmSubmit()" class="btn bg-orange-600 hover:bg-orange-700 md:col-start-2">
+    Submit Exam
+  </button>
+
+  ${exam.current === exam.subjects.length-1 && exam.questionIndex === 39 ? '' :
+    `<button onclick="nextQuestion()" class="btn md:col-start-3">
+      Next →
+    </button>`
+  }
+</div>
         </div>`;
       updateTimer();
     }
@@ -592,10 +600,37 @@
       if (!document.getElementById('timer')) return;
       const m = Math.floor(exam.timeLeft/60).toString().padStart(2,'0');
       const s = (exam.timeLeft%60).toString().padStart(2,'0');
-      document.getElementById('timer').textContent = `${m}:${s}`;
+      const timerEl = document.getElementById('timer');
+      timerEl.textContent = `${m}:${s}`;
+      timerEl.className = exam.timeLeft <= 300 ? 'low' : 'text-5xl font-bold';
       if (exam.timeLeft <= 300) document.getElementById('timer').classList.add('text-red-400');
     }
 
+    function confirmSubmit() {
+  const answered = Object.keys(exam.answers).length;
+  const total = exam.subjects.length * 40;
+  const unanswered = total - answered;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4';
+  overlay.innerHTML = `
+    <div class="glass p-8 rounded-3xl max-w-md w-full text-center">
+      <h2 class="text-3xl font-bold mb-6">⚠️ Submit Exam?</h2>
+      <p class="text-xl mb-4">You have answered <b>${answered}</b> out of <b>${total}</b> questions.</p>
+      ${unanswered > 0 ? `<p class="text-red-400 mb-6"><b>${unanswered}</b> questions are unanswered.</p>` : ''}
+      <p class="mb-8">Are you sure you want to submit now?</p>
+      <div class="grid grid-cols-2 gap-4">
+        <button onclick="this.closest('.fixed').remove()" class="btn bg-gray-600 hover:bg-gray-700">
+          Cancel
+        </button>
+        <button onclick="finishExam(); this.closest('.fixed').remove()" class="btn bg-red-600 hover:bg-red-700">
+          Yes, Submit
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+    
     function finishExam() {
       clearInterval(timerInterval);
       const scores = {};
