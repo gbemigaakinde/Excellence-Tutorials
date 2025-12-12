@@ -3,15 +3,78 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Excellence Tutorial CBT 2025</title>
+  <title>Excellence Tutorial Computer-Based Testing System</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { margin:0; padding:0; min-height:100vh; background: linear-gradient(135deg,#667eea,#764ba2); font-family:system-ui,sans-serif; }
-    .glass { background:rgba(255,255,255,0.15); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.2); border-radius:1.5rem; box-shadow:0 8px 32px rgba(0,0,0,0.4); }
-    .btn { @apply bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 px-8 rounded-xl transition; }
-    .grade-A { @apply bg-green-500; } .grade-B { @apply bg-blue-500; } .grade-C { @apply bg-yellow-500; }
-    .grade-D { @apply bg-orange-500; } .grade-F { @apply bg-red-500; }
-  </style>
+  /* Main background with subtle animation */
+  body {
+    margin: 0; padding: 0; min-height: 100vh;
+    background: linear-gradient(-45deg, #1e1b4b, #2e1065, #4c1d95, #6b21b6);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: white;
+  }
+  @keyframes gradient { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+
+  /* Premium glassmorphism card */
+  .glass {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 2rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Dark glass for questions & results */
+  .glass-dark {
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(12px);
+    border-radius: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Beautiful buttons */
+  .btn {
+    @apply bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 
+           text-white font-bold py-5 px-10 rounded-2xl transition-all duration-300 
+           transform hover:scale-105 shadow-xl text-lg;
+  }
+
+  /* Grade badges — make them pop! */
+  .grade-A { @apply bg-green-500 shadow-green-500/50; }
+  .grade-B { @apply bg-blue-500 shadow-blue-500/50; }
+  .grade-C { @apply bg-yellow-500 shadow-yellow-500/50; }
+  .grade-D { @apply bg-orange-500 shadow-orange-500/50; }
+  .grade-F { @apply bg-red-500 shadow-red-500/50; }
+
+  /* Timer glow when low */
+  #timer.low { @apply text-red-400 animate-pulse text-5xl font-bold; }
+
+  /* Input fields — premium look */
+  input[type="text"], input[type="password"] {
+    @apply w-full p-5 rounded-2xl bg-white/15 border border-white/30 
+           text-white placeholder-gray-300 focus:outline-none focus:ring-4 
+           focus:ring-purple-500/50 backdrop-blur transition;
+  }
+
+  /* Radio buttons — bigger and beautiful */
+  input[type="radio"] {
+    @apply w-6 h-6 accent-purple-500 transform scale-125;
+  }
+
+  /* Hover effect on options */
+  label:hover {
+    @apply bg-white/10 transform scale-102 transition;
+  }
+
+  /* Scrollbar styling (optional beauty touch) */
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-track { @apply bg-transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-white/30 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-white/50; }
+</style>
 </head>
 <body class="text-white">
   <div id="app" class="min-h-screen p-6"></div>
@@ -565,7 +628,7 @@
       const msg = encodeURIComponent(
         `*EXCELLENCE TUTORIAL RESULT*%0A%0AStudent: ${user}%0A%0A${exam.subjects.map(s=>`${s}: ${scores[s]}%`).join('%0A')}%0A%0ATotal: ${percentage}% (${grade})%0A%0ATime: ${new Date().toLocaleString()}%0A%0APowered by Master Timothy`
       );
-      window.open(`https://wa.me/2349033674870?text=${msg}`, '_blank');
+      window.open(`https://wa.me/2348155095660?text=${msg}`, '_blank');
 
       exam = { step: 'result', result };
       renderResult();
