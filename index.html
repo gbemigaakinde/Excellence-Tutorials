@@ -766,20 +766,18 @@ function showLogin() {
       const percentage = Math.round(total / (exam.subjects.length*40) * 100);
       const grade = percentage >= 70 ? 'A' : percentage >= 60 ? 'B' : percentage >= 50 ? 'C' : percentage >= 40 ? 'D' : 'F';
 
-      const studentData = students[user] || { firstName: user, lastName: '', class: 'Unknown', school: 'Unknown' };
+      const studentData = students[user] || { firstName: user, lastName: '', class: 'Unknown', school: 'Excellence Tutorial' };
 
 const result = {
   name: `${studentData.firstName} ${studentData.lastName}`.trim() || user,
-  class: studentData.class || 'Unknown',
-  school: studentData.school || 'Excellence Tutorial',
-  favouriteSubject: studentData.favouriteSubject || 'N/A',
+  class: studentData.class,
+  school: studentData.school,
   subjects: exam.subjects,
   scores,
   total: percentage,
   grade,
   time: new Date().toISOString()
 };
-
       attempts.push(result);
       localStorage.setItem('excellence_attempts', JSON.stringify(attempts));
 
