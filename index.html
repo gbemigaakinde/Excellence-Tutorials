@@ -790,9 +790,9 @@ const result = {
 function renderResult() {
   const r = exam.result;
 
-  // SUPER SAFE fallback – this prevents ANY crash
+  // 100% safe student data – this prevents ALL crashes
   const student = students[user] || {
-    firstName: user.charAt(0).toUpperCase() + user.slice(1),  // Capitalize username as fallback name
+    firstName: user.charAt(0).toUpperCase() + user.slice(1).toLowerCase(),  // Use capitalized username as name
     lastName: '',
     class: 'Unknown Class',
     school: 'Excellence Tutorial'
@@ -807,7 +807,8 @@ function renderResult() {
         </div>
         <div class="text-5xl font-bold mb-8">Grade: ${r.grade}</div>
         <p class="text-2xl mb-8">
-          Great job, ${student.firstName} ${student.lastName} (${student.class})!
+          Great job, ${student.firstName} ${student.lastName}!<br>
+          Class: ${student.class} • School: ${student.school}
         </p>
       </div>
 
@@ -824,7 +825,7 @@ function renderResult() {
 
       <!-- Detailed question review -->
       ${r.subjects.map((subject) => {
-        const subjQuestions = questions[subject];
+        const subjQuestions = questions[subject] || [];
         return `
           <div class="mb-12">
             <h2 class="text-3xl font-bold mb-6 text-center">${subject} — Review</h2>
@@ -836,19 +837,19 @@ function renderResult() {
                 return `
                   <div class="glass-dark p-8 rounded-2xl">
                     <div class="flex justify-between items-start mb-4">
-                      <div class="text-xl font-semibold">Q${qIdx + 1}: ${q.q}</div>
+                      <div class="text-xl font-semibold">Q${qIdx + 1}: ${q.q || 'Question not found'}</div>
                       <div class="text-2xl font-bold ${isCorrect ? 'text-green-400' : 'text-red-400'}">
                         ${isCorrect ? '✓ Correct' : '✗ Wrong'}
                       </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                      ${q.opts.map((opt, optIdx) => {
+                      ${(q.opts || []).map((opt, optIdx) => {
                         const isUser = optIdx === userAnswer;
                         const isCorr = optIdx === q.ans;
                         return `
                           <div class="p-4 rounded-xl ${isCorr ? 'bg-green-500/30 border-2 border-green-400' : isUser && !isCorr ? 'bg-red-500/30 border-2 border-red-400' : 'bg-white/5'}">
-                            <span class="font-bold">${String.fromCharCode(65 + optIdx)}.</span> ${opt}
+                            <span class="font-bold">${String.fromCharCode(65 + optIdx)}.</span> ${opt || ''}
                             ${isCorr ? ' <span class="ml-2 font-bold text-green-300">← Correct Answer</span>' : ''}
                             ${isUser && !isCorr ? ' <span class="ml-2 font-bold text-red-300">← Your Answer</span>' : ''}
                           </div>`;
@@ -868,7 +869,7 @@ function renderResult() {
       }).join('')}
 
       <div class="text-center mt-12">
-        <p class="text-xl mb-8 text-green-300">Your result has been saved!</p>
+        <p class="text-xl mb-8 text-green-300">✅ Your result has been saved!</p>
         <button onclick="user=null;exam=null;render()" class="btn text-2xl px-16">
           Back to Home
         </button>
