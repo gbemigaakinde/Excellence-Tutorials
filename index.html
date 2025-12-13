@@ -98,7 +98,26 @@
 
     // FULL 320+ QUESTIONS (40 per subject)
     const questions = {
-     'English Language': [
+  jss1: {
+    'English Language': [ /* 40 questions for JSS1 English */ ],
+    'Basic Science': [ /* 40 questions */ ],
+    'Basic Technology': [ /* 40 */ ],
+    'Mathematics': [ /* 40 */ ],
+    'Civic Education': [ /* 40 */ ],
+    // add more JSS1 subjects
+  },
+  jss2: {
+    'English Language': [ /* JSS2 version */ ],
+    'Basic Science': [ /* ... */ ],
+    // etc.
+  },
+  jss3: {
+    'English Language': [ /* JSS3 */ ],
+    'Mathematics': [ /* ... */ ],
+    // include BECE-style if needed
+  },
+  sss1: {
+    'English Language': [
         { q: "Neither the principal nor the teachers ______ aware of the decision.", opts: ["is", "are", "were", "have been"], ans: 1, exp: "In 'neither...nor' constructions, the verb agrees with the nearer subject ('teachers' is plural → 'are')." },
         { q: "If I ______ you, I would accept the offer immediately.", opts: ["am", "was", "were", "had been"], ans: 2, exp: "Subjunctive mood for hypothetical situations: 'If I were you...' (unreal condition)." },
         { q: "The manager, along with his staff, ______ arriving tomorrow.", opts: ["is", "are", "were", "have"], ans: 0, exp: "Subject-verb agreement: phrases like 'along with' do not affect the singular subject ('manager' → 'is')." },
@@ -434,7 +453,17 @@
   { q: "A tragic hero is a character who", opts: ["is always weak", "has a tragic flaw that leads to downfall", "never makes mistakes", "is completely evil"], ans: 1, exp: "Tragic hero possesses hamartia (tragic flaw)." },
   { q: "The moral lesson of a literary work is best described as its", opts: ["plot", "character", "theme", "setting"], ans: 2, exp: "Theme is the central message or moral insight." }
 ],
-    };
+  },
+  sss2: {
+    // SSS2 subjects/questions
+  },
+  sss3: {
+    'English Language': [ /* WAEC/JAMB style */ ],
+    'Mathematics': [ /* ... */ ],
+    'Physics': [ /* ... */ ],
+    // add Literature, Economics, etc.
+  }
+};
     // I have included ALL 320+ questions at the bottom of this file — they are real and complete.
 
     function render() {
@@ -666,18 +695,26 @@ function showLogin() {
 
  function renderSubjectSelection() {
   const student = students[user] || { firstName: user, lastName: '', class: 'Unknown', school: 'Excellence Tutorial' };
+  const classKey = student.class.toLowerCase().replace(' ', ''); // "JSS1" → "jss1", "SSS 3" → "sss3"
+
+  const availableSubjects = questions[classKey] ? Object.keys(questions[classKey]) : [];
 
   document.getElementById('app').innerHTML = `
     <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
       <h1 class="text-4xl font-bold mb-8">Welcome, ${student.firstName} ${student.lastName || ''}!</h1>
       <p>Class: ${student.class} • School: ${student.school}</p>
-      <p class="text-xl mb-8">Select at least 2 subjects</p>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        ${Object.keys(questions).map(s => `
-          <label class="glass p-6 rounded-xl cursor-pointer hover:scale-105 transition">
-            <input type="checkbox" value="${s}" onchange="toggleSubject(this)"> ${s}
-          </label>`).join('')}
-      </div>
+      <p class="text-xl mb-8">Select at least 2 subjects for your exam</p>
+
+      ${availableSubjects.length === 0 ? 
+        '<p class="text-red-400 text-2xl">No subjects available for your class yet. Contact teacher.</p>' :
+        `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          ${availableSubjects.map(s => `
+            <label class="glass p-6 rounded-xl cursor-pointer hover:scale-105 transition">
+              <input type="checkbox" value="${s}" onchange="toggleSubject(this)"> ${s}
+            </label>`).join('')}
+        </div>`
+      }
+
       <button onclick="startExam()" id="startBtn" disabled class="btn text-xl px-12">Start Exam</button>
       <button onclick="user=null;exam=null;render()" class="mt-6 text-sm opacity-70">← Logout</button>
     </div>`;
@@ -690,22 +727,26 @@ function showLogin() {
     }
 
     function startExam() {
-      exam = {
-        step: 'exam',
-        subjects: [...exam.chosen],
-        current: 0,
-        questionIndex: 0,
-        answers: {},
-        startTime: Date.now(),
-        timeLeft: 40*60
-      };
-      startTimer();
-      renderExam();
-    }
+  const student = students[user];
+  const classKey = student.class.toLowerCase().replace(' ', '');
+
+  exam = {
+    step: 'exam',
+    subjects: [...exam.chosen],
+    current: 0,
+    questionIndex: 0,
+    answers: {},
+    startTime: Date.now(),
+    timeLeft: 40*60,
+    classQuestions: questions[classKey]  // save reference
+  };
+  startTimer();
+  renderExam();
+}
 
     function renderExam() {
-      const s = exam.subjects[exam.current];
-      const q = questions[s][exam.questionIndex];
+  const s = exam.subjects[exam.current];
+  const q = exam.classQuestions[s][exam.questionIndex];  // ← changed here
       document.getElementById('app').innerHTML = `
         <div class="max-w-4xl mx-auto glass p-8 mt-8 rounded-3xl">
           <div class="flex justify-between items-center mb-8">
@@ -808,7 +849,7 @@ function showLogin() {
       exam.subjects.forEach(sub => {
         let correct = 0;
         for (let i = 0; i < 40; i++) {
-          if (exam.answers[`${sub}-${i}`] === questions[sub][i].ans) correct++;
+          if (exam.answers[`${sub}-${i}`] === exam.classQuestions[sub][i].ans) correct++;
         }
         scores[sub] = Math.round(correct/40*100);
         total += correct;
@@ -837,7 +878,7 @@ const result = {
 exam.subjects.forEach(sub => {
   let correct = 0;
   for (let i = 0; i < 40; i++) {
-    if (exam.answers[`${sub}-${i}`] === questions[sub][i].ans) correct++;
+    if (exam.answers[`${sub}-${i}`] === exam.classQuestions[sub][i].ans) correct++;
   }
   result.correctAnswers[sub] = correct;
 });
