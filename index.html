@@ -501,27 +501,32 @@ if (!user) {
   <p class="text-sm opacity-80 text-center">Already have an account? <span onclick="showLogin()" class="underline cursor-pointer text-pink-300">Login here</span></p>
     </div>`;
       }
-      else if (user === 'Teacher') {
-        app.innerHTML = `
-          <div class="max-w-6xl mx-auto glass p-8 mt-8 rounded-3xl">
-            <div class="flex justify-between items-center mb-8">
-              <h1 class="text-4xl font-bold">Teacher Dashboard</h1>
-              <button onclick="user=null;render()" class="btn">Logout</button>
+else if (user === 'Teacher') {
+  app.innerHTML = `
+    <div class="max-w-6xl mx-auto glass p-8 mt-8 rounded-3xl">
+      <div class="flex justify-between items-center mb-8">
+        <h1 class="text-4xl font-bold">Teacher Dashboard</h1>
+        <button onclick="user=null;render()" class="btn">Logout</button>
+      </div>
+      <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        ${attempts.length === 0 ? 
+          '<p class="text-center col-span-3 text-xl opacity-70">No results yet</p>' :
+          attempts.reverse().map(a => `
+            <div class="glass-dark p-6 rounded-2xl">
+              <div class="font-bold text-xl">${a.name || user}</div>
+              <div class="text-sm opacity-80">${a.class || 'SSS1'} • ${new Date(a.time).toLocaleString()}</div>
+              <div class="mt-4">
+                ${a.subjects.map(s => `<div>${s}: <b>${a.scores[s]}%</b></div>`).join('')}
+              </div>
+              <div class="mt-4 text-2xl font-bold ${a.grade === 'A' ? 'grade-A' : a.grade === 'B' ? 'grade-B' : a.grade === 'C' ? 'grade-C' : a.grade === 'D' ? 'grade-D' : 'grade-F'} p-3 rounded-xl text-center">
+                ${a.total}% → ${a.grade}
+              </div>
             </div>
-            <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              ${attempts.reverse().map(a => `
-                <div class="glass-dark p-6 rounded-2xl">
-                  <div class="font-bold text-xl">${a.name}</div>
-                  <div class="text-sm opacity-80">${a.class} • ${new Date(a.time).toLocaleString()}</div>
-                  <div class="mt-4">
-                    ${a.subjects.map(s=>`<div>${s}: <b>${a.scores[s]}%</b></div>`).join('')}
-                  </div>
-                  <div class="mt-4 text-2xl font-bold ${a.grade === 'A' ? 'grade-A' : a.grade === 'B' ? 'grade-B' : a.grade === 'C' ? 'grade-C' : a.grade === 'D' ? 'grade-D' : 'grade-F'} p-3 rounded-xl text-center">
-                    ${a.total}% → ${a.grade}
-                  </div>
-                </div>`).join('') || '<p class="text-center col-span-3 text-xl opacity-70">No results yet</p>
-            </div>;
-                }
+          `).join('')
+        }
+      </div>
+    </div>`;
+}
       else {
         // Student exam flow
         if (!exam) startSubjectSelection();
@@ -580,7 +585,15 @@ if (!user) {
   alert(`Registration Successful! 🎉\n\nWelcome, ${first}!\nUsername: ${username}\n\nYou can now login with your username and password.`);
   showLogin();
 }
-    
+    function showRegister() {
+  document.getElementById('loginForm').classList.add('hidden');
+  document.getElementById('registerForm').classList.remove('hidden');
+}
+
+function showLogin() {
+  document.getElementById('registerForm').classList.add('hidden');
+  document.getElementById('loginForm').classList.remove('hidden');
+}
     function startSubjectSelection() {
       exam = { step: 'subjects', chosen: [] };
       render();
