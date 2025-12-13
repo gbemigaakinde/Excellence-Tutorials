@@ -10,11 +10,6 @@
   <!-- Official Tailwind v4 Play CDN (as of December 2025) -->
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
-<style>
-  body { visibility: visible !important; background: #1e1b4b !important; color: white !important; }
-  #app > * { display: block !important; }
-</style>
-
   <style>
     /* Main background with subtle animation */
     body {
@@ -168,6 +163,31 @@
       display: none !important;
     }
   </style>
+  <style>
+  /* Fallback visibility if Tailwind fails */
+  .min-h-screen { min-height: 100vh; }
+  .p-6, .p-8, .p-10 { padding: 1.5rem 2rem 2.5rem; }
+  .mt-8, .mt-10, .mt-20 { margin-top: 2rem 2.5rem 5rem; }
+  .mx-auto { margin-left: auto; margin-right: auto; }
+  .max-w-md { max-width: 28rem; }
+  .max-w-4xl { max-width: 56rem; }
+  .max-w-6xl { max-width: 72rem; }
+  .text-center { text-align: center; }
+  .grid { display: grid; }
+  .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+  @media (min-width: 768px) { .md\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 1024px) { .lg\\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .gap-4, .gap-6 { gap: 1rem 1.5rem; }
+  .flex { display: flex; }
+  .justify-between { justify-content: space-between; }
+  .items-center { align-items: center; }
+  .block { display: block; }
+  .w-full { width: 100%; }
+  .text-4xl { font-size: 2.25rem; }
+  .text-6xl { font-size: 4rem; }
+  .font-bold { font-weight: 700; }
+  /* Add more as needed for login form visibility */
+</style>
 </head>
 <!-- The rest of your <body> and script remain exactly the same -->
 <body class="text-white">
