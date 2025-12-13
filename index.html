@@ -6,25 +6,24 @@
   <title>Excellence Tutorial Computer-Based Testing System</title>
   <!-- Standard favicon -->
 <link rel="icon" href="IMG_4512.png" type="image/png">
-
-<!-- For Apple devices -->
-<link rel="apple-touch-icon" href="IMG_4512.png">
-
-<!-- Optional: specify size for different devices -->
-<link rel="icon" type="image/png" sizes="32x32" href="IMG_4512.png">
-<link rel="icon" type="image/png" sizes="16x16" href="IMG_4512.png">
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
+<style>
   /* Main background with subtle animation */
   body {
-    margin: 0; padding: 0; min-height: 100vh;
+    margin: 0; 
+    padding: 0; 
+    min-height: 100vh;
     background: linear-gradient(-45deg, #1e1b4b, #2e1065, #4c1d95, #6b21b6);
     background-size: 400% 400%;
     animation: gradient 15s ease infinite;
     font-family: 'Segoe UI', system-ui, sans-serif;
     color: white;
   }
-  @keyframes gradient { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+  @keyframes gradient { 
+    0% { background-position: 0% 50%; } 
+    50% { background-position: 100% 50%; } 
+    100% { background-position: 0% 50%; } 
+  }
 
   /* Premium glassmorphism card */
   .glass {
@@ -40,55 +39,133 @@
   .glass-dark {
     background: rgba(0, 0, 0, 0.35);
     backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-radius: 1.5rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   /* Beautiful buttons */
   .btn {
-    @apply bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 
-           text-white font-bold py-5 px-10 rounded-2xl transition-all duration-300 
-           transform hover:scale-105 shadow-xl text-lg;
+    background: linear-gradient(to right, #9333ea, #ec4899);
+    color: white;
+    font-weight: bold;
+    padding: 1.25rem 2.5rem;
+    border-radius: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+    font-size: 1.125rem;
+    border: none;
+    cursor: pointer;
+    transform: scale(1);
+  }
+  .btn:hover {
+    background: linear-gradient(to right, #7c3aed, #db2777);
+    transform: scale(1.05);
   }
 
-  /* Grade badges — make them pop! */
-  .grade-A { @apply bg-green-500 shadow-green-500/50; }
-  .grade-B { @apply bg-blue-500 shadow-blue-500/50; }
-  .grade-C { @apply bg-yellow-500 shadow-yellow-500/50; }
-  .grade-D { @apply bg-orange-500 shadow-orange-500/50; }
-  .grade-F { @apply bg-red-500 shadow-red-500/50; }
+  /* Grade badges */
+  .grade-A { 
+    background-color: #22c55e; 
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.5); 
+  }
+  .grade-B { 
+    background-color: #3b82f6; 
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); 
+  }
+  .grade-C { 
+    background-color: #eab308; 
+    box-shadow: 0 0 20px rgba(234, 179, 8, 0.5); 
+  }
+  .grade-D { 
+    background-color: #f97316; 
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.5); 
+  }
+  .grade-F { 
+    background-color: #ef4444; 
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.5); 
+  }
 
   /* Timer glow when low */
-  #timer.low { @apply text-red-400 animate-pulse text-5xl font-bold; }
-
-  /* Input fields — premium look */
-  input[type="text"], input[type="password"] {
-    @apply w-full p-5 rounded-2xl bg-white/15 border border-white/30 
-           text-white placeholder-gray-300 focus:outline-none focus:ring-4 
-           focus:ring-purple-500/50 backdrop-blur transition;
+  #timer.low { 
+    color: #fca5a5; 
+    animation: pulse 1.5s infinite; 
+    font-size: 3rem; 
+    font-weight: bold; 
+  }
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
   }
 
-  /* Radio buttons — bigger and beautiful */
+  /* Input fields */
+  input[type="text"], 
+  input[type="password"], 
+  select {
+    width: 100%;
+    padding: 1.25rem;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    font-size: 1rem;
+    transition: all 0.3s;
+  }
+  input[type="text"]::placeholder, 
+  input[type="password"]::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+  }
+  input[type="text"]:focus, 
+  input[type="password"]:focus,
+  select:focus {
+    outline: none;
+    ring: 4px solid rgba(168, 85, 247, 0.5);
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Radio buttons */
   input[type="radio"] {
-    @apply w-6 h-6 accent-purple-500 transform scale-125;
+    width: 1.5rem;
+    height: 1.5rem;
+    accent-color: #9333ea;
+    transform: scale(1.25);
   }
 
   /* Hover effect on options */
   label:hover {
-    @apply bg-white/10 transform scale-102 transition;
+    background: rgba(255, 255, 255, 0.1);
+    transition: all 0.3s;
+    border-radius: 1rem;
+    padding: 0.5rem;
+    transform: scale(1.02);
   }
 
-  /* Scrollbar styling (optional beauty touch) */
-  ::-webkit-scrollbar { width: 10px; }
-  ::-webkit-scrollbar-track { @apply bg-transparent; }
-  ::-webkit-scrollbar-thumb { @apply bg-white/30 rounded-full; }
-  ::-webkit-scrollbar-thumb:hover { @apply bg-white/50; }
+  /* Scrollbar styling */
+  ::-webkit-scrollbar { 
+    width: 10px; 
+  }
+  ::-webkit-scrollbar-track { 
+    background: transparent; 
+  }
+  ::-webkit-scrollbar-thumb { 
+    background: rgba(255, 255, 255, 0.3); 
+    border-radius: 5px; 
+  }
+  ::-webkit-scrollbar-thumb:hover { 
+    background: rgba(255, 255, 255, 0.5); 
+  }
+
+  /* Hidden class */
+  .hidden {
+    display: none !important;
+  }
 </style>
 </head>
 <body class="text-white">
   <div id="app" class="min-h-screen p-6"></div>
 
   <script>
+    let timerInterval;  // Add this line
     // ALL DATA SAVED IN BROWSER — WORKS ON GITHUB PAGES!
     let students = JSON.parse(localStorage.getItem('excellence_students') || '{}');
     let attempts = JSON.parse(localStorage.getItem('excellence_attempts') || '[]');
@@ -2485,13 +2562,13 @@ function showLogin() {
   attempts.push(result);
   localStorage.setItem('excellence_attempts', JSON.stringify(attempts));
 
-  // Preserve answers and add result for renderResult()
-  exam = {
-    step: 'result',
-    result,
-    answers: exam.answers,
-    classQuestions: exam.classQuestions  // keep for review/explanations
-  };
+   exam = {
+     step: 'result',
+     result,
+     answers: exam.answers || {},
+     subjects: exam.subjects,
+     classQuestions: exam.classQuestions || {}  // This saves the questions properly
+   };
 
   renderResult();
 }
@@ -2573,9 +2650,10 @@ function renderResult() {
 
       <!-- Detailed question review -->
       ${r.subjects.map((subject) => {
-        const subjQuestions = classQuestions[subject] || [];
-        return `
-          <div class="mb-12">
+  const subjQuestions = exam.classQuestions?.[subject] || [];
+  // Fallback if questions are missing
+  return `
+    <div class="mb-12">
             <h2 class="text-3xl font-bold mb-6 text-center">${subject} — Review</h2>
             <div class="space-y-6">
               ${subjQuestions.map((q, qIdx) => {
