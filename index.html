@@ -505,24 +505,70 @@ if (!user) {
     </div>`;
       }
 else if (user === 'Teacher') {
+  // Sort attempts by date (newest first)
+  const sortedAttempts = [...attempts].sort((a, b) => new Date(b.time) - new Date(a.time));
+
+  // Get list of all registered students
+  const registeredStudents = Object.values(students).map(s => ({
+    username: Object.keys(students).find(key => students[key] === s),
+    ...s
+  })).sort((a, b) => a.firstName.localeCompare(b.firstName));
+
   app.innerHTML = `
     <div class="max-w-6xl mx-auto glass p-8 mt-8 rounded-3xl">
       <div class="flex justify-between items-center mb-8">
         <h1 class="text-4xl font-bold">Teacher Dashboard</h1>
+        <div class="mb-8">
+  <input type="file" id="importFile" multiple accept=".json" style="display:none" onchange="importResults(this.files)">
+  <button onclick="document.getElementById('importFile').click()" class="btn bg-green-600 hover:bg-green-700">
+    Import Student Results
+  </button>
+</div>
         <button onclick="user=null;render()" class="btn">Logout</button>
       </div>
+
+      <!-- Student Register -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold mb-6">Student Register (${registeredStudents.length} students)</h2>
+        <div class="glass-dark p-6 rounded-2xl max-h-96 overflow-y-auto">
+          ${registeredStudents.length === 0 ? 
+            '<p class="text-center text-xl opacity-70">No registered students yet</p>' :
+            '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">' +
+              registeredStudents.map(stu => `
+                <div class="bg-white/10 p-4 rounded-xl">
+                  <div class="font-semibold">${stu.firstName} ${stu.lastName}</div>
+                  <div class="text-sm opacity-80">${stu.class} • ${stu.school}</div>
+                  <div class="text-xs opacity-60">Username: ${stu.username}</div>
+                </div>
+              `).join('') +
+            '</div>'
+          }
+        </div>
+      </div>
+
+      <!-- Exam Results -->
+      <h2 class="text-3xl font-bold mb-6">Exam Results (${sortedAttempts.length} attempts)</h2>
       <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        ${attempts.length === 0 ? 
+        ${sortedAttempts.length === 0 ? 
           '<p class="text-center col-span-3 text-xl opacity-70">No results yet</p>' :
-          attempts.reverse().map(a => `
-            <div class="glass-dark p-6 rounded-2xl">
-              <div class="font-bold text-xl">${a.name || user}</div>
-              <div class="text-sm opacity-80">${a.class || 'SSS1'} • ${new Date(a.time).toLocaleString()}</div>
+          sortedAttempts.map((a, index) => `
+            <div class="glass-dark p-6 rounded-2xl relative">
+              <button onclick="deleteResult(${attempts.indexOf(a)})" class="absolute top-4 right-4 text-red-400 hover:text-red-300 text-2xl">×</button>
+              <div class="font-bold text-xl">${a.name}</div>
+              <div class="text-sm opacity-80">${a.class} • ${new Date(a.time).toLocaleDateString()} ${new Date(a.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
               <div class="mt-4">
-                ${a.subjects.map(s => `<div>${s}: <b>${a.scores[s]}%</b></div>`).join('')}
+                ${a.subjects.map(s => `
+                  <div class="flex justify-between">
+                    <span>${s}:</span>
+                    <b>${a.correctAnswers[s] || Math.round(a.scores[s]/100 * 40)}/40 (${a.scores[s]}%)</b>
+                  </div>
+                `).join('')}
               </div>
-              <div class="mt-4 text-2xl font-bold ${a.grade === 'A' ? 'grade-A' : a.grade === 'B' ? 'grade-B' : a.grade === 'C' ? 'grade-C' : a.grade === 'D' ? 'grade-D' : 'grade-F'} p-3 rounded-xl text-center">
-                ${a.total}% → ${a.grade}
+              <div class="mt-4 text-center">
+                <div class="text-3xl font-bold">${a.totalCorrect}/${a.totalQuestions} correct</div>
+                <div class="text-2xl font-bold ${a.grade === 'A' ? 'grade-A' : a.grade === 'B' ? 'grade-B' : a.grade === 'C' ? 'grade-C' : a.grade === 'D' ? 'grade-D' : 'grade-F'} p-3 rounded-xl mt-2">
+                  ${a.total}% → Grade ${a.grade}
+                </div>
               </div>
             </div>
           `).join('')
@@ -538,7 +584,61 @@ else if (user === 'Teacher') {
         else if (exam.step === 'result') renderResult();
       }
     }
+ function importResults(files) {
+  if (files.length === 0) return;
+  
+  let imported = 0;
+  let skipped = 0;
 
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = JSON.parse(e.target.result);
+        let result;
+        
+        if (data.singleResult) {
+          result = data.singleResult;
+        } else if (data.attempts) {
+          // if someone exports all
+          data.attempts.forEach(r => attempts.push(r));
+          imported += data.attempts.length;
+        } else {
+          throw "Invalid file";
+        }
+
+        if (result) {
+          // Avoid duplicates by checking time + name
+          const exists = attempts.some(a => a.time === result.time && a.name === result.name);
+          if (!exists) {
+            attempts.push(result);
+            imported++;
+          } else {
+            skipped++;
+          }
+        }
+
+        localStorage.setItem('excellence_attempts', JSON.stringify(attempts));
+        render();  // refresh dashboard
+
+      } catch (err) {
+        alert(`Error reading ${file.name}: Invalid file`);
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  setTimeout(() => {
+    alert(`Import complete!\nAdded: ${imported} new results\nSkipped (duplicates): ${skipped}`);
+  }, 1000);
+}
+function deleteResult(index) {
+  if (confirm("Are you sure you want to delete this result permanently?")) {
+    attempts.splice(index, 1);
+    localStorage.setItem('excellence_attempts', JSON.stringify(attempts));
+    render();  // refresh dashboard
+  }
+}
     function login() {
   const enteredUsername = document.getElementById('u').value.trim();
   const enteredPassword = document.getElementById('p').value.trim();  // NO toLowerCase!
@@ -772,21 +872,57 @@ function showLogin() {
 
 const result = {
   name: `${studentData.firstName} ${studentData.lastName}`.trim() || user,
+  username: user,  // useful for deletion
   class: studentData.class,
   school: studentData.school,
   subjects: exam.subjects,
-  scores,
+  scores,  // {subject: percentage}
+  correctAnswers: {},  // new: actual correct count
+  totalQuestions: exam.subjects.length * 40,
+  totalCorrect: total,  // total correct out of all questions
   total: percentage,
   grade,
   time: new Date().toISOString()
 };
+
+// Add actual correct count per subject
+exam.subjects.forEach(sub => {
+  let correct = 0;
+  for (let i = 0; i < 40; i++) {
+    if (exam.answers[`${sub}-${i}`] === questions[sub][i].ans) correct++;
+  }
+  result.correctAnswers[sub] = correct;
+});
       attempts.push(result);
       localStorage.setItem('excellence_attempts', JSON.stringify(attempts));
 
       exam = { step: 'result', result, answers: exam.answers };
       renderResult();
     }
-
+function exportSingleResult() {
+  const data = {
+    singleResult: exam.result
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `excellence_result_${user}_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  alert("Result exported! Send this file to your teacher.");
+}
+    function shareViaWhatsApp() {
+  const message = encodeURIComponent(`Hello Sir,\nHere is my exam result.\n\nName: ${exam.result.name}\nTotal: ${exam.result.total}% (Grade ${exam.result.grade})\nDate: ${new Date(exam.result.time).toLocaleDateString()}\n\nPlease find the full result file attached when I send it.`);
+  
+  // First export the file (student can attach it manually)
+  exportSingleResult();
+  
+  // Open WhatsApp with pre-filled message to your number
+  const teacherNumber = "2348155095660";  // CHANGE THIS to your actual WhatsApp number (international format, no +)
+  window.open(`https://wa.me/${teacherNumber}?text=${message}`, '_blank');
+}
+    
 function renderResult() {
   const r = exam.result;
 
@@ -804,13 +940,21 @@ function renderResult() {
         <h1 class="text-6xl font-bold mb-4">Exam Complete!</h1>
         <div class="text-8xl font-bold mb-6 ${r.grade==='A'?'text-green-400':r.grade==='B'?'text-blue-400':r.grade==='C'?'text-yellow-400':r.grade==='D'?'text-orange-400':'text-red-400'}">
           ${r.total}%
-        </div>
+          </div>
         <div class="text-5xl font-bold mb-8">Grade: ${r.grade}</div>
         <p class="text-2xl mb-8">
           Great job, ${student.firstName} ${student.lastName}!<br>
           Class: ${student.class} • School: ${student.school}
         </p>
       </div>
+      <div class="grid grid-cols-2 gap-4 mt-8">
+  <button onclick="exportSingleResult()" class="btn bg-blue-600 hover:bg-blue-700">
+    Download Result File
+  </button>
+  <button onclick="shareViaWhatsApp()" class="btn bg-green-600 hover:bg-green-700">
+    Send Result to Teacher on WhatsApp
+  </button>
+</div>
 
       <!-- Per-subject score summary -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
