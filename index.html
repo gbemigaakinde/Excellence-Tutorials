@@ -586,27 +586,28 @@ function deleteResult(index) {
     render();  // refresh dashboard
   }
 }
-    function login() {
+function login() {
   const enteredUsername = document.getElementById('u').value.trim();
-  const enteredPassword = document.getElementById('p').value.trim();  // NO toLowerCase!
+  const enteredPassword = document.getElementById('p').value.trim();
 
-  // Optional: make username case-insensitive (recommended)
   const username = enteredUsername.toLowerCase();
 
-// Teacher login (fully case-insensitive)
-if (username === 'teacher' && enteredPassword === 'Master') {
-  user = 'Teacher';
-  render();
-  return;
-}
+  // TEACHER LOGIN - MUST BE CHECKED FIRST
+  if (username === 'teacher' && enteredPassword === 'Master') {
+    user = 'Teacher';
+    render();
+    return;  // IMPORTANT: Stop here, don't check student login
+  }
 
-  // Student login
+  // STUDENT LOGIN
   if (students[username] && students[username].password === enteredPassword) {
     user = username;
     render();
-  } else {
-    alert("Wrong username or password!");
+    return;
   }
+
+  // Wrong credentials
+  alert("Wrong username or password!");
 }
 
     function register() {
@@ -846,19 +847,6 @@ exam.subjects.forEach(sub => {
       exam = { step: 'result', result, answers: exam.answers };
       renderResult();
     }
-    
-    function exportSingleResult() {
-  const data = {
-    singleResult: exam.result
-  };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `excellence_result_${user}_${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 function shareViaWhatsApp() {
   let message = `Hello Sir,\n\nHere is my attempt result. Thank you.\n\n`;
