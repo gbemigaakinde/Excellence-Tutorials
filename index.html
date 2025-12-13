@@ -779,12 +779,6 @@ function showLogin() {
       attempts.push(result);
       localStorage.setItem('excellence_attempts', JSON.stringify(attempts));
 
-      // AUTO SEND TO YOUR WHATSAPP
-      const msg = encodeURIComponent(
-        `*EXCELLENCE TUTORIAL RESULT*%0A%0AStudent: ${user}%0A%0A${exam.subjects.map(s=>`${s}: ${scores[s]}%`).join('%0A')}%0A%0ATotal: ${percentage}% (${grade})%0A%0ATime: ${new Date().toLocaleString()}%0A%0APowered by Master Timothy`
-      );
-      window.open(`https://wa.me/2348155095660?text=${msg}`, '_blank');
-
       exam = { step: 'result', result };
       renderResult();
     }
