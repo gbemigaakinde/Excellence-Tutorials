@@ -488,6 +488,9 @@ if (!user) {
     <option>General Mathematics</option>
     <option>Physics</option>
     <option>Chemistry</option>
+    <option>Basic Science</option>
+    <option>Business Study</option>
+    <option>Basic Technology</option>
     <option>Biology</option>
     <option>Economics</option>
     <option>Civic Education</option>
@@ -537,13 +540,27 @@ else if (user === 'Teacher') {
     }
 
     function login() {
-      const u = document.getElementById('u').value.trim();
-      const p = document.getElementById('p').value.trim();
-      if (credentials[u] && credentials[u] === p) {
-        user = u;
-        render();
-      } else alert("Wrong username or password!");
-    }
+  const enteredUsername = document.getElementById('u').value.trim();
+  const enteredPassword = document.getElementById('p').value.trim();  // NO toLowerCase!
+
+  // Optional: make username case-insensitive (recommended)
+  const username = enteredUsername.toLowerCase();
+
+  // Teacher login (keep as is)
+  if (username === 'teacher' && enteredPassword === 'Master') {
+    user = 'Teacher';
+    render();
+    return;
+  }
+
+  // Student login
+  if (students[username] && students[username].password === enteredPassword) {
+    user = username;
+    render();
+  } else {
+    alert("Wrong username or password!");
+  }
+}
 
     function register() {
   const first = document.getElementById('regFirstName').value.trim();
@@ -551,7 +568,7 @@ else if (user === 'Teacher') {
   const classLevel = document.getElementById('regClass').value;
   const school = document.getElementById('regSchool').value.trim();
   const favourite = document.getElementById('regFavourite').value;
-  const username = document.getElementById('regUsername').value.trim();
+  const username = document.getElementById('regUsername').value.trim().toLowerCase();
   const password = document.getElementById('regPassword').value.trim();
 
   if (!first || !last || !classLevel || !school || !favourite || !username || !password) {
