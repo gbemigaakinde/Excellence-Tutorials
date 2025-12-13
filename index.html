@@ -789,8 +789,15 @@ const result = {
 
 function renderResult() {
   const r = exam.result;
-  const student = students[user] || { firstName: user, lastName: '', class: r.class || 'Unknown', school: 'Excellence Tutorial' };
-  
+
+  // Safe student data fallback
+  const student = students[user] || {
+    firstName: user,
+    lastName: '',
+    class: 'Unknown',
+    school: 'Excellence Tutorial'
+  };
+
   document.getElementById('app').innerHTML = `
     <div class="max-w-6xl mx-auto glass p-10 mt-10 rounded-3xl">
       <div class="text-center mb-12">
@@ -799,7 +806,9 @@ function renderResult() {
           ${r.total}%
         </div>
         <div class="text-5xl font-bold mb-8">Grade: ${r.grade}</div>
-        <p class="text-2xl mb-8">Great job, ${student.firstName} ${student.lastName || ''}!</p>
+        <p class="text-2xl mb-8">
+          Great job, ${student.firstName} ${student.lastName || ''}!
+        </p>
       </div>
 
       <!-- Per-subject score summary -->
@@ -813,7 +822,7 @@ function renderResult() {
         `).join('')}
       </div>
 
-      <!-- Detailed question review -->
+      <!-- Detailed question review (unchanged) -->
       ${r.subjects.map((subject, subjIdx) => {
         const subjQuestions = questions[subject];
         return `
@@ -824,9 +833,6 @@ function renderResult() {
                 const userKey = `${subject}-${qIdx}`;
                 const userAnswer = exam.answers[userKey];
                 const isCorrect = userAnswer === q.ans;
-                const correctLetter = String.fromCharCode(65 + q.ans);
-                const userLetter = userAnswer !== undefined ? String.fromCharCode(65 + userAnswer) : '—';
-
                 return `
                   <div class="glass-dark p-8 rounded-2xl">
                     <div class="flex justify-between items-start mb-4">
@@ -835,7 +841,6 @@ function renderResult() {
                         ${isCorrect ? '✓ Correct' : '✗ Wrong'}
                       </div>
                     </div>
-
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                       ${q.opts.map((opt, optIdx) => {
                         const isUser = optIdx === userAnswer;
@@ -848,7 +853,6 @@ function renderResult() {
                           </div>`;
                       }).join('')}
                     </div>
-
                     ${!isCorrect ? `
                       <div class="mt-4 p-4 bg-yellow-500/20 rounded-xl border border-yellow-400">
                         <p class="font-semibold text-yellow-300">Explanation:</p>
