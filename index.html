@@ -592,14 +592,14 @@ function login() {
 
   const username = enteredUsername.toLowerCase();
 
-  // TEACHER LOGIN - MUST BE CHECKED FIRST
+  // TEACHER LOGIN - CHECKED FIRST
   if (username === 'teacher' && enteredPassword === 'Master') {
     user = 'Teacher';
     render();
-    return;  // IMPORTANT: Stop here, don't check student login
+    return;  // STOP HERE — very important
   }
 
-  // STUDENT LOGIN
+  // STUDENT LOGIN - only if not teacher
   if (students[username] && students[username].password === enteredPassword) {
     user = username;
     render();
