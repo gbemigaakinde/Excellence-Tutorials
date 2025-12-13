@@ -616,22 +616,24 @@ function showLogin() {
       render();
     }
 
-    function renderSubjectSelection() {
-      document.getElementById('app').innerHTML = `
-        <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
-          <h1 class="text-4xl font-bold mb-8">Welcome, ${students[user].firstName} ${students[user].lastName}!</h1>
-          <p>Class: ${students[user].class} • School: ${students[user].school}</p>
-          <p class="text-xl mb-8">Select at least 2 subjects</p>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            ${Object.keys(questions).map(s => `
-              <label class="glass p-6 rounded-xl cursor-pointer hover:scale-105 transition">
-                <input type="checkbox" value="${s}" onchange="toggleSubject(this)"> ${s}
-              </label>`).join('')}
-          </div>
-          <button onclick="startExam()" id="startBtn" disabled class="btn text-xl px-12">Start Exam</button>
-          <button onclick="user=null;render()" class="mt-6 text-sm opacity-70">← Logout</button>
-        </div>`;
-    }
+ function renderSubjectSelection() {
+  const student = students[user] || { firstName: user, lastName: '', class: 'Unknown', school: 'Excellence Tutorial' };
+
+  document.getElementById('app').innerHTML = `
+    <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
+      <h1 class="text-4xl font-bold mb-8">Welcome, ${student.firstName} ${student.lastName || ''}!</h1>
+      <p>Class: ${student.class} • School: ${student.school}</p>
+      <p class="text-xl mb-8">Select at least 2 subjects</p>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        ${Object.keys(questions).map(s => `
+          <label class="glass p-6 rounded-xl cursor-pointer hover:scale-105 transition">
+            <input type="checkbox" value="${s}" onchange="toggleSubject(this)"> ${s}
+          </label>`).join('')}
+      </div>
+      <button onclick="startExam()" id="startBtn" disabled class="btn text-xl px-12">Start Exam</button>
+      <button onclick="user=null;exam=null;render()" class="mt-6 text-sm opacity-70">← Logout</button>
+    </div>`;
+}
 
     function toggleSubject(cb) {
       if (cb.checked) exam.chosen.push(cb.value);
@@ -781,7 +783,7 @@ const result = {
       attempts.push(result);
       localStorage.setItem('excellence_attempts', JSON.stringify(attempts));
 
-      exam = { step: 'result', result };
+      exam = { step: 'result', result, answers: exam.answers };
       renderResult();
     }
 
