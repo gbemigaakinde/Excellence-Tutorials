@@ -99,11 +99,11 @@
     // FULL 320+ QUESTIONS (40 per subject)
     const questions = {
      'English Language': [
-        { q: "The passage mainly teaches that success depends on", opts: ["intelligence alone", "discipline and consistency", "teachers encouragement", "frequent examinations"], ans: 1, exp: "The passage emphasizes effort, discipline, and consistency over mere intelligence." },
-        { q: "According to the passage, a brilliant student may fail if he", opts: ["lacks intelligence", "studies daily", "lacks self control", "asks questions"], ans: 2, exp: "A brilliant student without self-control may fail." },
-        { q: "Students perform better when they", opts: ["rely on intelligence", "revise regularly", "avoid teachers", "read once a term"], ans: 1, exp: "Regular revision and asking questions lead to better performance." },
-        { q: "Learning is described as", opts: ["an instant activity", "a punishment", "a gradual process", "a natural gift"], ans: 2, exp: "Learning is a gradual process, not a sudden event." },
-        { q: "The word excel as used in the passage means", opts: ["fail", "improve", "stand out", "struggle"], ans: 2, exp: "Excel means to perform outstandingly." },
+        { q: "Neither the principal nor the teachers ______ aware of the decision.", opts: ["is", "are", "were", "have been"], ans: 1, exp: "In 'neither...nor' constructions, the verb agrees with the nearer subject ('teachers' is plural → 'are')." },
+        { q: "If I ______ you, I would accept the offer immediately.", opts: ["am", "was", "were", "had been"], ans: 2, exp: "Subjunctive mood for hypothetical situations: 'If I were you...' (unreal condition)." },
+        { q: "The manager, along with his staff, ______ arriving tomorrow.", opts: ["is", "are", "were", "have"], ans: 0, exp: "Subject-verb agreement: phrases like 'along with' do not affect the singular subject ('manager' → 'is')." },
+        { q: "By next year, they ______ in this house for ten years.", opts: ["will live", "will have lived", "will be living", "have lived"], ans: 1, exp: "Future perfect continuous tense for duration up to a future point: 'will have been living'." },
+        { q: "The report was ______ by the committee before submission.", opts: ["careful reviewed", "carefully review", "carefully reviewed", "careful review"], ans: 2, exp: "Adverb 'carefully' modifies the past participle 'reviewed' in passive voice." },
         { q: "The word that functions as an adjective in “The extremely difficult test discouraged the students” is", opts: ["test", "extremely", "difficult", "discouraged"], ans: 2, exp: "Difficult describes the noun 'test'." },
         { q: "Neither Musa nor his sisters ______ present at the meeting.", opts: ["was", "were", "is", "has"], ans: 1, exp: "With 'neither...nor', the verb agrees with the nearer subject (sisters → were)." },
         { q: "The correct passive form of “They will announce the results tomorrow” is", opts: ["The results were announced tomorrow", "The results will be announced tomorrow", "The results are being announced tomorrow", "The results have been announced"], ans: 1, exp: "Future passive: will be + past participle." },
@@ -439,18 +439,67 @@
 
     function render() {
       const app = document.getElementById('app');
-      if (!user) {
-        app.innerHTML = `
-          <div class="max-w-md mx-auto mt-20 glass p-10 text-center">
-            <h1 class="text-5xl font-bold mb-8">Excellence Tutorial 2025</h1>
-            <input id="u" class="w-full p-4 rounded-xl mb-4 bg-white/20 text-white placeholder-gray-300" placeholder="Username (e.g. Shiloh)" autocomplete="off">
-            <input id="p" type="password" class="w-full p-4 rounded-xl mb-8 bg-white/20 text-white placeholder-gray-300" placeholder="Password (your surname)">
-            <button onclick="login()" class="btn w-full text-xl">LOGIN</button>
-            <p class="mt-8 text-sm opacity-90">
-              Students: First name → username | Surname → password<br><br>
-              Teacher: Username <b>Teacher</b> | Password <b>Master</b>
-            </p>
-          </div>`;
+if (!user) {
+  app.innerHTML = `
+    <div class="max-w-md mx-auto mt-20 glass p-10 text-center">
+      <div class="text-center mb-12">
+        <h1 class="text-6xl font-extrabold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent mb-4">
+          Excellence Tutorial
+        </h1>
+        <p class="text-2xl opacity-90">Computer-based Testing System</p>
+      </div>
+
+      <p class="text-center text-xl mb-8 font-semibold">
+       Please login or register to start your exam.
+      </p>
+
+      <!-- Login Form -->
+      <div id="loginForm">
+        <input id="u" class="w-full p-4 rounded-xl mb-4 bg-white/20 text-white placeholder-gray-300" placeholder="Username" autocomplete="off">
+        <input id="p" type="password" class="w-full p-4 rounded-xl mb-6 bg-white/20 text-white placeholder-gray-300" placeholder="Password">
+        <button onclick="login()" class="btn w-full text-xl mb-4">LOGIN</button>
+        <p class="text-sm opacity-80">New student? <span onclick="showRegister()" class="underline cursor-pointer text-pink-300">Register here</span></p>
+      </div>
+
+<!-- Registration Form (hidden initially) -->
+<div id="registerForm" class="hidden space-y-4">
+  <input id="regFirstName" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" placeholder="First Name" required>
+  <input id="regLastName" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" placeholder="Last Name" required>
+  
+  <select id="regClass" class="w-full p-4 rounded-xl bg-white/20 text-white" required>
+    <option value="">Select Class</option>
+    <optgroup label="Junior Secondary">
+      <option value="JSS1">JSS 1</option>
+      <option value="JSS2">JSS 2</option>
+      <option value="JSS3">JSS 3</option>
+    </optgroup>
+    <optgroup label="Senior Secondary">
+      <option value="SSS1">SSS 1</option>
+      <option value="SSS2">SSS 2</option>
+      <option value="SSS3">SSS 3</option>
+    </optgroup>
+  </select>
+  
+  <input id="regSchool" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" placeholder="School Name" required>
+  
+  <select id="regFavourite" class="w-full p-4 rounded-xl bg-white/20 text-white" required>
+    <option value="">Favourite Subject</option>
+    <option>English Language</option>
+    <option>General Mathematics</option>
+    <option>Physics</option>
+    <option>Chemistry</option>
+    <option>Biology</option>
+    <option>Economics</option>
+    <option>Civic Education</option>
+    <option>Literature in English</option>
+  </select>
+  
+  <input id="regUsername" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" placeholder="Choose Username" required>
+  <input id="regPassword" type="password" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" placeholder="Choose Password" required>
+  
+  <button onclick="register()" class="btn w-full text-xl">COMPLETE REGISTRATION</button>
+  <p class="text-sm opacity-80 text-center">Already have an account? <span onclick="showLogin()" class="underline cursor-pointer text-pink-300">Login here</span></p>
+    </div>`;
       }
       else if (user === 'Teacher') {
         app.innerHTML = `
@@ -470,10 +519,9 @@
                   <div class="mt-4 text-2xl font-bold ${a.grade === 'A' ? 'grade-A' : a.grade === 'B' ? 'grade-B' : a.grade === 'C' ? 'grade-C' : a.grade === 'D' ? 'grade-D' : 'grade-F'} p-3 rounded-xl text-center">
                     ${a.total}% → ${a.grade}
                   </div>
-                </div>`).join('') || '<p class="text-center col-span-3 text-xl opacity-70">No results yet</p>'}
-            </div>
-          </div>`;
-      }
+                </div>`).join('') || '<p class="text-center col-span-3 text-xl opacity-70">No results yet</p>
+            </div>;
+                }
       else {
         // Student exam flow
         if (!exam) startSubjectSelection();
@@ -492,6 +540,47 @@
       } else alert("Wrong username or password!");
     }
 
+    function register() {
+  const first = document.getElementById('regFirstName').value.trim();
+  const last = document.getElementById('regLastName').value.trim();
+  const classLevel = document.getElementById('regClass').value;
+  const school = document.getElementById('regSchool').value.trim();
+  const favourite = document.getElementById('regFavourite').value;
+  const username = document.getElementById('regUsername').value.trim();
+  const password = document.getElementById('regPassword').value.trim();
+
+  if (!first || !last || !classLevel || !school || !favourite || !username || !password) {
+    alert("Please fill in all fields!");
+    return;
+  }
+
+  if (username.length < 4 || password.length < 4) {
+    alert("Username and password must be at least 4 characters long.");
+    return;
+  }
+
+  // Check if username already exists
+  if (students[username]) {
+    alert("This username is already taken. Please choose another.");
+    return;
+  }
+
+  // Save student with full details
+  students[username] = {
+    password: password,
+    firstName: first,
+    lastName: last,
+    class: classLevel,
+    school: school,
+    favouriteSubject: favourite,
+    registeredAt: new Date().toISOString()
+  };
+  localStorage.setItem('excellence_students', JSON.stringify(students));
+
+  alert(`Registration Successful! 🎉\n\nWelcome, ${first}!\nUsername: ${username}\n\nYou can now login with your username and password.`);
+  showLogin();
+}
+    
     function startSubjectSelection() {
       exam = { step: 'subjects', chosen: [] };
       render();
@@ -500,7 +589,8 @@
     function renderSubjectSelection() {
       document.getElementById('app').innerHTML = `
         <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
-          <h1 class="text-4xl font-bold mb-8">Welcome, ${user}!</h1>
+          <h1 class="text-4xl font-bold mb-8">Welcome, ${students[user].firstName} ${students[user].lastName}!</h1>
+          <p>Class: ${students[user].class} • School: ${students[user].school}</p>
           <p class="text-xl mb-8">Select at least 2 subjects</p>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             ${Object.keys(questions).map(s => `
@@ -669,25 +759,85 @@
       renderResult();
     }
 
-    function renderResult() {
-      const r = exam.result;
-      document.getElementById('app').innerHTML = `
-        <div class="max-w-4xl mx-auto glass p-10 mt-10 text-center rounded-3xl">
-          <h1 class="text-6xl font-bold mb-8">Congratulations ${user}!</h1>
-          <div class="text-8xl font-bold mb-8 ${r.grade==='A'?'text-green-400':r.grade==='B'?'text-blue-400':'text-yellow-400'}">${r.total}%</div>
-          <div class="text-5xl font-bold mb-8">Grade: ${r.grade}</div>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10">
-            ${r.subjects.map(s=>`
-              <div class="glass-dark p-6 rounded-2xl">
-                <div class="text-lg">${s}</div>
-                <div class="text-4xl font-bold">${r.scores[s]}%</div>
-              </div>`).join('')}
-          </div>
-          <p class="text-xl mb-8">Your result has been sent to Master Timothy on WhatsApp!</p>
-          <button onclick="user=null;exam=null;render()" class="btn text-2xl px-16">Finish</button>
-        </div>`;
-    }
+function renderResult() {
+  const r = exam.result;
+  document.getElementById('app').innerHTML = `
+    <div class="max-w-6xl mx-auto glass p-10 mt-10 rounded-3xl">
+      <div class="text-center mb-12">
+        <h1 class="text-6xl font-bold mb-4">Exam Complete!</h1>
+        <div class="text-8xl font-bold mb-6 ${r.grade==='A'?'text-green-400':r.grade==='B'?'text-blue-400':r.grade==='C'?'text-yellow-400':r.grade==='D'?'text-orange-400':'text-red-400'}">
+          ${r.total}%
+        </div>
+        <div class="text-5xl font-bold mb-8">Grade: ${r.grade}</div>
+        <p class="text-2xl mb-8">Great job, ${user}! Here are your detailed corrections:</p>
+      </div>
 
+      <!-- Per-subject score summary -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+        ${r.subjects.map(s => `
+          <div class="glass-dark p-6 rounded-2xl text-center">
+            <div class="text-lg font-semibold">${s}</div>
+            <div class="text-5xl font-bold my-4">${r.scores[s]}%</div>
+            <div class="text-sm opacity-80">${Math.round(r.scores[s]/100 * 40)} / 40 correct</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- Detailed question review -->
+      ${r.subjects.map((subject, subjIdx) => {
+        const subjQuestions = questions[subject];
+        return `
+          <div class="mb-12">
+            <h2 class="text-3xl font-bold mb-6 text-center">${subject} — Review</h2>
+            <div class="space-y-6">
+              ${subjQuestions.map((q, qIdx) => {
+                const userKey = `${subject}-${qIdx}`;
+                const userAnswer = exam.answers[userKey];
+                const isCorrect = userAnswer === q.ans;
+                const correctLetter = String.fromCharCode(65 + q.ans);
+                const userLetter = userAnswer !== undefined ? String.fromCharCode(65 + userAnswer) : '—';
+
+                return `
+                  <div class="glass-dark p-8 rounded-2xl">
+                    <div class="flex justify-between items-start mb-4">
+                      <div class="text-xl font-semibold">Q${qIdx + 1}: ${q.q}</div>
+                      <div class="text-2xl font-bold ${isCorrect ? 'text-green-400' : 'text-red-400'}">
+                        ${isCorrect ? '✓ Correct' : '✗ Wrong'}
+                      </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      ${q.opts.map((opt, optIdx) => {
+                        const isUser = optIdx === userAnswer;
+                        const isCorr = optIdx === q.ans;
+                        return `
+                          <div class="p-4 rounded-xl ${isCorr ? 'bg-green-500/30 border-2 border-green-400' : isUser && !isCorr ? 'bg-red-500/30 border-2 border-red-400' : 'bg-white/5'}">
+                            <span class="font-bold">${String.fromCharCode(65 + optIdx)}.</span> ${opt}
+                            ${isCorr ? ' <span class="ml-2 font-bold text-green-300">← Correct Answer</span>' : ''}
+                            ${isUser && !isCorr ? ' <span class="ml-2 font-bold text-red-300">← Your Answer</span>' : ''}
+                          </div>`;
+                      }).join('')}
+                    </div>
+
+                    ${!isCorrect ? `
+                      <div class="mt-4 p-4 bg-yellow-500/20 rounded-xl border border-yellow-400">
+                        <p class="font-semibold text-yellow-300">Explanation:</p>
+                        <p>${q.exp}</p>
+                      </div>` : ''
+                    }
+                  </div>`;
+              }).join('')}
+            </div>
+          </div>`;
+      }).join('')}
+
+      <div class="text-center mt-12">
+        <button onclick="user=null;exam=null;render()" class="btn text-2xl px-16">
+          Back to Home
+        </button>
+      </div>
+    </div>`;
+}
     render();
   </script>
 
@@ -697,11 +847,11 @@
     // I’m including the first few as example — the rest are identical to your working version
     Object.assign(questions, {
        'English Language': [
-        { q: "The passage mainly teaches that success depends on", opts: ["intelligence alone", "discipline and consistency", "teachers encouragement", "frequent examinations"], ans: 1, exp: "The passage emphasizes effort, discipline, and consistency over mere intelligence." },
-        { q: "According to the passage, a brilliant student may fail if he", opts: ["lacks intelligence", "studies daily", "lacks self control", "asks questions"], ans: 2, exp: "A brilliant student without self-control may fail." },
-        { q: "Students perform better when they", opts: ["rely on intelligence", "revise regularly", "avoid teachers", "read once a term"], ans: 1, exp: "Regular revision and asking questions lead to better performance." },
-        { q: "Learning is described as", opts: ["an instant activity", "a punishment", "a gradual process", "a natural gift"], ans: 2, exp: "Learning is a gradual process, not a sudden event." },
-        { q: "The word excel as used in the passage means", opts: ["fail", "improve", "stand out", "struggle"], ans: 2, exp: "Excel means to perform outstandingly." },
+        { q: "Neither the principal nor the teachers ______ aware of the decision.", opts: ["is", "are", "were", "have been"], ans: 1, exp: "In 'neither...nor' constructions, the verb agrees with the nearer subject ('teachers' is plural → 'are')." },
+        { q: "If I ______ you, I would accept the offer immediately.", opts: ["am", "was", "were", "had been"], ans: 2, exp: "Subjunctive mood for hypothetical situations: 'If I were you...' (unreal condition)." },
+        { q: "The manager, along with his staff, ______ arriving tomorrow.", opts: ["is", "are", "were", "have"], ans: 0, exp: "Subject-verb agreement: phrases like 'along with' do not affect the singular subject ('manager' → 'is')." },
+        { q: "By next year, they ______ in this house for ten years.", opts: ["will live", "will have lived", "will be living", "have lived"], ans: 1, exp: "Future perfect continuous tense for duration up to a future point: 'will have been living'." },
+        { q: "The report was ______ by the committee before submission.", opts: ["careful reviewed", "carefully review", "carefully reviewed", "careful review"], ans: 2, exp: "Adverb 'carefully' modifies the past participle 'reviewed' in passive voice." },
         { q: "The word that functions as an adjective in “The extremely difficult test discouraged the students” is", opts: ["test", "extremely", "difficult", "discouraged"], ans: 2, exp: "Difficult describes the noun 'test'." },
         { q: "Neither Musa nor his sisters ______ present at the meeting.", opts: ["was", "were", "is", "has"], ans: 1, exp: "With 'neither...nor', the verb agrees with the nearer subject (sisters → were)." },
         { q: "The correct passive form of “They will announce the results tomorrow” is", opts: ["The results were announced tomorrow", "The results will be announced tomorrow", "The results are being announced tomorrow", "The results have been announced"], ans: 1, exp: "Future passive: will be + past participle." },
