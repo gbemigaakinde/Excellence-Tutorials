@@ -790,11 +790,11 @@ const result = {
 function renderResult() {
   const r = exam.result;
 
-  // Safe student data fallback
+  // SUPER SAFE fallback – this prevents ANY crash
   const student = students[user] || {
-    firstName: user,
+    firstName: user.charAt(0).toUpperCase() + user.slice(1),  // Capitalize username as fallback name
     lastName: '',
-    class: 'Unknown',
+    class: 'Unknown Class',
     school: 'Excellence Tutorial'
   };
 
@@ -807,7 +807,7 @@ function renderResult() {
         </div>
         <div class="text-5xl font-bold mb-8">Grade: ${r.grade}</div>
         <p class="text-2xl mb-8">
-          Great job, ${student.firstName} ${student.lastName || ''}!
+          Great job, ${student.firstName} ${student.lastName} (${student.class})!
         </p>
       </div>
 
@@ -822,8 +822,8 @@ function renderResult() {
         `).join('')}
       </div>
 
-      <!-- Detailed question review (unchanged) -->
-      ${r.subjects.map((subject, subjIdx) => {
+      <!-- Detailed question review -->
+      ${r.subjects.map((subject) => {
         const subjQuestions = questions[subject];
         return `
           <div class="mb-12">
@@ -841,6 +841,7 @@ function renderResult() {
                         ${isCorrect ? '✓ Correct' : '✗ Wrong'}
                       </div>
                     </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                       ${q.opts.map((opt, optIdx) => {
                         const isUser = optIdx === userAnswer;
@@ -853,10 +854,11 @@ function renderResult() {
                           </div>`;
                       }).join('')}
                     </div>
+
                     ${!isCorrect ? `
                       <div class="mt-4 p-4 bg-yellow-500/20 rounded-xl border border-yellow-400">
                         <p class="font-semibold text-yellow-300">Explanation:</p>
-                        <p>${q.exp}</p>
+                        <p>${q.exp || 'No explanation available.'}</p>
                       </div>` : ''
                     }
                   </div>`;
@@ -866,6 +868,7 @@ function renderResult() {
       }).join('')}
 
       <div class="text-center mt-12">
+        <p class="text-xl mb-8 text-green-300">Your result has been saved!</p>
         <button onclick="user=null;exam=null;render()" class="btn text-2xl px-16">
           Back to Home
         </button>
