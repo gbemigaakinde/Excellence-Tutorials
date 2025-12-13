@@ -861,16 +861,30 @@ exam.subjects.forEach(sub => {
 }
 
 function shareViaWhatsApp() {
-  const message = encodeURIComponent(`Hello Sir,\nHere is my attempt result.\n\nName: ${exam.result.name}\nTotal: ${exam.result.total}% (Grade ${exam.result.grade})\nDate: ${new Date(exam.result.time).toLocaleDateString()}\n\nThank you.`);
-  
-  // First download the file
-  exportSingleResult();
-  
-  // Open WhatsApp with your number
-  const teacherNumber = "2348155095660";  // Your number
-  window.open(`https://wa.me/${teacherNumber}?text=${message}`, '_blank');
-  
-  alert("Result file downloaded! Open WhatsApp, attach the file, and send.");
+  let message = `Hello Sir,\n\nHere is my attempt result. Thank you.\n\n`;
+  message += `Name: ${exam.result.name}\n`;
+  message += `Class: ${exam.result.class}\n`;
+  message += `Date: ${new Date(exam.result.time).toLocaleDateString()}\n\n`;
+  message += `Overall: ${exam.result.total}% (Grade ${exam.result.grade})\n`;
+  message += `Total Correct: ${exam.result.totalCorrect}/${exam.result.totalQuestions}\n\n`;
+  message += `Subject Scores:\n`;
+
+  exam.result.subjects.forEach(s => {
+    const correct = exam.result.correctAnswers[s] || Math.round(exam.result.scores[s]/100 * 40);
+    message += `- ${s}: ${correct}/40 (${exam.result.scores[s]}%)\n`;
+  });
+
+  message += `\nThank you!`;
+
+  const encodedMessage = encodeURIComponent(message);
+
+  // Your number (international format, no + or spaces)
+  const teacherNumber = "2348155095660";
+
+  // Open WhatsApp with pre-filled message
+  window.open(`https://wa.me/${teacherNumber}?text=${encodedMessage}`, '_blank');
+
+  alert("WhatsApp opened with your full result! Just tap Send.");
 }
     
 function renderResult() {
@@ -898,9 +912,9 @@ function renderResult() {
         </p>
       </div>
       <div class="grid grid-cols-2 gap-4 mt-8">
-  <button onclick="shareViaWhatsApp()" class="btn bg-green-600 hover:bg-green-700">
-    Send Result to Teacher on WhatsApp
-  </button>
+  <button onclick="shareViaWhatsApp()" class="btn bg-green-600 hover:bg-green-700 text-xl px-12">
+  Send Result to Teacher on WhatsApp
+</button>
 </div>
 
       <!-- Per-subject score summary -->
