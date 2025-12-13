@@ -593,12 +593,12 @@ function deleteResult(index) {
   // Optional: make username case-insensitive (recommended)
   const username = enteredUsername.toLowerCase();
 
-  // Teacher login (keep as is)
-  if (username === 'teacher' && enteredPassword === 'Master') {
-    user = 'Teacher';
-    render();
-    return;
-  }
+// Teacher login (fully case-insensitive)
+if (username === 'teacher' && enteredPassword === 'Master') {
+  user = 'Teacher';
+  render();
+  return;
+}
 
   // Student login
   if (students[username] && students[username].password === enteredPassword) {
@@ -846,15 +846,31 @@ exam.subjects.forEach(sub => {
       exam = { step: 'result', result, answers: exam.answers };
       renderResult();
     }
-    function shareViaWhatsApp() {
+    
+    function exportSingleResult() {
+  const data = {
+    singleResult: exam.result
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `excellence_result_${user}_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function shareViaWhatsApp() {
   const message = encodeURIComponent(`Hello Sir,\nHere is my attempt result.\n\nName: ${exam.result.name}\nTotal: ${exam.result.total}% (Grade ${exam.result.grade})\nDate: ${new Date(exam.result.time).toLocaleDateString()}\n\nThank you.`);
   
-  // First export the file (student can attach it manually)
+  // First download the file
   exportSingleResult();
   
-  // Open WhatsApp with pre-filled message to your number
-  const teacherNumber = "2348155095660";  // CHANGE THIS to your actual WhatsApp number (international format, no +)
+  // Open WhatsApp with your number
+  const teacherNumber = "2348155095660";  // Your number
   window.open(`https://wa.me/${teacherNumber}?text=${message}`, '_blank');
+  
+  alert("Result file downloaded! Open WhatsApp, attach the file, and send.");
 }
     
 function renderResult() {
