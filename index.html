@@ -4,6 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Excellence Tutorial Computer-Based Testing System</title>
+  <!-- Standard favicon -->
+<link rel="icon" href="IMG_4512.png" type="image/png">
+
+<!-- For Apple devices -->
+<link rel="apple-touch-icon" href="IMG_4512.png">
+
+<!-- Optional: specify size for different devices -->
+<link rel="icon" type="image/png" sizes="32x32" href="IMG_4512.png">
+<link rel="icon" type="image/png" sizes="16x16" href="IMG_4512.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
   /* Main background with subtle animation */
@@ -98,7 +107,26 @@
 
     // FULL 320+ QUESTIONS (40 per subject)
     const questions = {
-     'English Language': [
+  jss1: {
+    'English Language': [ /* 40 questions for JSS1 English */ ],
+    'Basic Science': [ /* 40 questions */ ],
+    'Basic Technology': [ /* 40 */ ],
+    'Mathematics': [ /* 40 */ ],
+    'Civic Education': [ /* 40 */ ],
+    // add more JSS1 subjects
+  },
+  jss2: {
+    'English Language': [ /* JSS2 version */ ],
+    'Basic Science': [ /* ... */ ],
+    // etc.
+  },
+  jss3: {
+    'English Language': [ /* JSS3 */ ],
+    'Mathematics': [ /* ... */ ],
+    // include BECE-style if needed
+  },
+  sss1: {
+    'English Language': [
         { q: "Neither the principal nor the teachers ______ aware of the decision.", opts: ["is", "are", "were", "have been"], ans: 1, exp: "In 'neither...nor' constructions, the verb agrees with the nearer subject ('teachers' is plural → 'are')." },
         { q: "If I ______ you, I would accept the offer immediately.", opts: ["am", "was", "were", "had been"], ans: 2, exp: "Subjunctive mood for hypothetical situations: 'If I were you...' (unreal condition)." },
         { q: "The manager, along with his staff, ______ arriving tomorrow.", opts: ["is", "are", "were", "have"], ans: 0, exp: "Subject-verb agreement: phrases like 'along with' do not affect the singular subject ('manager' → 'is')." },
@@ -434,7 +462,17 @@
   { q: "A tragic hero is a character who", opts: ["is always weak", "has a tragic flaw that leads to downfall", "never makes mistakes", "is completely evil"], ans: 1, exp: "Tragic hero possesses hamartia (tragic flaw)." },
   { q: "The moral lesson of a literary work is best described as its", opts: ["plot", "character", "theme", "setting"], ans: 2, exp: "Theme is the central message or moral insight." }
 ],
-    };
+  },
+  sss2: {
+    // SSS2 subjects/questions
+  },
+  sss3: {
+    'English Language': [ /* WAEC/JAMB style */ ],
+    'Mathematics': [ /* ... */ ],
+    'Physics': [ /* ... */ ],
+    // add Literature, Economics, etc.
+  }
+};
     // I have included ALL 320+ questions at the bottom of this file — they are real and complete.
 
     function render() {
@@ -505,24 +543,64 @@ if (!user) {
     </div>`;
       }
 else if (user === 'Teacher') {
+  // Sort attempts by date (newest first)
+  const sortedAttempts = [...attempts].sort((a, b) => new Date(b.time) - new Date(a.time));
+
+  // Get list of all registered students
+  const registeredStudents = Object.values(students).map(s => ({
+    username: Object.keys(students).find(key => students[key] === s),
+    ...s
+  })).sort((a, b) => a.firstName.localeCompare(b.firstName));
+
   app.innerHTML = `
     <div class="max-w-6xl mx-auto glass p-8 mt-8 rounded-3xl">
       <div class="flex justify-between items-center mb-8">
         <h1 class="text-4xl font-bold">Teacher Dashboard</h1>
         <button onclick="user=null;render()" class="btn">Logout</button>
       </div>
+
+      <!-- Student Register -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold mb-6">Student Register (${registeredStudents.length} students)</h2>
+        <div class="glass-dark p-6 rounded-2xl max-h-96 overflow-y-auto">
+          ${registeredStudents.length === 0 ? 
+            '<p class="text-center text-xl opacity-70">No registered students yet</p>' :
+            '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">' +
+              registeredStudents.map(stu => `
+                <div class="bg-white/10 p-4 rounded-xl">
+                  <div class="font-semibold">${stu.firstName} ${stu.lastName}</div>
+                  <div class="text-sm opacity-80">${stu.class} • ${stu.school}</div>
+                  <div class="text-xs opacity-60">Username: ${stu.username}</div>
+                </div>
+              `).join('') +
+            '</div>'
+          }
+        </div>
+      </div>
+
+      <!-- Exam Results -->
+      <h2 class="text-3xl font-bold mb-6">Exam Results (${sortedAttempts.length} attempts)</h2>
       <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        ${attempts.length === 0 ? 
+        ${sortedAttempts.length === 0 ? 
           '<p class="text-center col-span-3 text-xl opacity-70">No results yet</p>' :
-          attempts.reverse().map(a => `
-            <div class="glass-dark p-6 rounded-2xl">
-              <div class="font-bold text-xl">${a.name || user}</div>
-              <div class="text-sm opacity-80">${a.class || 'SSS1'} • ${new Date(a.time).toLocaleString()}</div>
+          sortedAttempts.map((a, index) => `
+            <div class="glass-dark p-6 rounded-2xl relative">
+              <button onclick="deleteResult(${attempts.indexOf(a)})" class="absolute top-4 right-4 text-red-400 hover:text-red-300 text-2xl">×</button>
+              <div class="font-bold text-xl">${a.name}</div>
+              <div class="text-sm opacity-80">${a.class} • ${new Date(a.time).toLocaleDateString()} ${new Date(a.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
               <div class="mt-4">
-                ${a.subjects.map(s => `<div>${s}: <b>${a.scores[s]}%</b></div>`).join('')}
+                ${a.subjects.map(s => `
+                  <div class="flex justify-between">
+                    <span>${s}:</span>
+                    <b>${a.correctAnswers[s] || Math.round(a.scores[s]/100 * 40)}/40 (${a.scores[s]}%)</b>
+                  </div>
+                `).join('')}
               </div>
-              <div class="mt-4 text-2xl font-bold ${a.grade === 'A' ? 'grade-A' : a.grade === 'B' ? 'grade-B' : a.grade === 'C' ? 'grade-C' : a.grade === 'D' ? 'grade-D' : 'grade-F'} p-3 rounded-xl text-center">
-                ${a.total}% → ${a.grade}
+              <div class="mt-4 text-center">
+                <div class="text-3xl font-bold">${a.totalCorrect}/${a.totalQuestions} correct</div>
+                <div class="text-2xl font-bold ${a.grade === 'A' ? 'grade-A' : a.grade === 'B' ? 'grade-B' : a.grade === 'C' ? 'grade-C' : a.grade === 'D' ? 'grade-D' : 'grade-F'} p-3 rounded-xl mt-2">
+                  ${a.total}% → Grade ${a.grade}
+                </div>
               </div>
             </div>
           `).join('')
@@ -539,27 +617,35 @@ else if (user === 'Teacher') {
       }
     }
 
-    function login() {
+function deleteResult(index) {
+  if (confirm("Are you sure you want to delete this result permanently?")) {
+    attempts.splice(index, 1);
+    localStorage.setItem('excellence_attempts', JSON.stringify(attempts));
+    render();  // refresh dashboard
+  }
+}
+function login() {
   const enteredUsername = document.getElementById('u').value.trim();
-  const enteredPassword = document.getElementById('p').value.trim();  // NO toLowerCase!
+  const enteredPassword = document.getElementById('p').value.trim();
 
-  // Optional: make username case-insensitive (recommended)
   const username = enteredUsername.toLowerCase();
 
-  // Teacher login (keep as is)
+  // TEACHER LOGIN - CHECKED FIRST
   if (username === 'teacher' && enteredPassword === 'Master') {
     user = 'Teacher';
+    render();
+    return;  // STOP HERE — very important
+  }
+
+  // STUDENT LOGIN - only if not teacher
+  if (students[username] && students[username].password === enteredPassword) {
+    user = username;
     render();
     return;
   }
 
-  // Student login
-  if (students[username] && students[username].password === enteredPassword) {
-    user = username;
-    render();
-  } else {
-    alert("Wrong username or password!");
-  }
+  // Wrong credentials
+  alert("Wrong username or password!");
 }
 
     function register() {
@@ -616,22 +702,32 @@ function showLogin() {
       render();
     }
 
-    function renderSubjectSelection() {
-      document.getElementById('app').innerHTML = `
-        <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
-          <h1 class="text-4xl font-bold mb-8">Welcome, ${students[user].firstName} ${students[user].lastName}!</h1>
-          <p>Class: ${students[user].class} • School: ${students[user].school}</p>
-          <p class="text-xl mb-8">Select at least 2 subjects</p>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            ${Object.keys(questions).map(s => `
-              <label class="glass p-6 rounded-xl cursor-pointer hover:scale-105 transition">
-                <input type="checkbox" value="${s}" onchange="toggleSubject(this)"> ${s}
-              </label>`).join('')}
-          </div>
-          <button onclick="startExam()" id="startBtn" disabled class="btn text-xl px-12">Start Exam</button>
-          <button onclick="user=null;render()" class="mt-6 text-sm opacity-70">← Logout</button>
-        </div>`;
-    }
+ function renderSubjectSelection() {
+  const student = students[user] || { firstName: user, lastName: '', class: 'Unknown', school: 'Excellence Tutorial' };
+  const classKey = student.class.toLowerCase().replace(' ', ''); // "JSS1" → "jss1", "SSS 3" → "sss3"
+
+  const availableSubjects = questions[classKey] ? Object.keys(questions[classKey]) : [];
+
+  document.getElementById('app').innerHTML = `
+    <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
+      <h1 class="text-4xl font-bold mb-8">Welcome, ${student.firstName} ${student.lastName || ''}!</h1>
+      <p>Class: ${student.class} • School: ${student.school}</p>
+      <p class="text-xl mb-8">Select at least 2 subjects for your exam</p>
+
+      ${availableSubjects.length === 0 ? 
+        '<p class="text-red-400 text-2xl">No subjects available for your class yet. Contact teacher.</p>' :
+        `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          ${availableSubjects.map(s => `
+            <label class="glass p-6 rounded-xl cursor-pointer hover:scale-105 transition">
+              <input type="checkbox" value="${s}" onchange="toggleSubject(this)"> ${s}
+            </label>`).join('')}
+        </div>`
+      }
+
+      <button onclick="startExam()" id="startBtn" disabled class="btn text-xl px-12">Start Exam</button>
+      <button onclick="user=null;exam=null;render()" class="mt-6 text-sm opacity-70">← Logout</button>
+    </div>`;
+}
 
     function toggleSubject(cb) {
       if (cb.checked) exam.chosen.push(cb.value);
@@ -640,22 +736,26 @@ function showLogin() {
     }
 
     function startExam() {
-      exam = {
-        step: 'exam',
-        subjects: [...exam.chosen],
-        current: 0,
-        questionIndex: 0,
-        answers: {},
-        startTime: Date.now(),
-        timeLeft: 40*60
-      };
-      startTimer();
-      renderExam();
-    }
+  const student = students[user];
+  const classKey = student.class.toLowerCase().replace(' ', '');
+
+  exam = {
+    step: 'exam',
+    subjects: [...exam.chosen],
+    current: 0,
+    questionIndex: 0,
+    answers: {},
+    startTime: Date.now(),
+    timeLeft: 40*60,
+    classQuestions: questions[classKey]  // save reference
+  };
+  startTimer();
+  renderExam();
+}
 
     function renderExam() {
-      const s = exam.subjects[exam.current];
-      const q = questions[s][exam.questionIndex];
+  const s = exam.subjects[exam.current];
+  const q = exam.classQuestions[s][exam.questionIndex];  // ← changed here
       document.getElementById('app').innerHTML = `
         <div class="max-w-4xl mx-auto glass p-8 mt-8 rounded-3xl">
           <div class="flex justify-between items-center mb-8">
@@ -752,39 +852,109 @@ function showLogin() {
 }
     
     function finishExam() {
-      clearInterval(timerInterval);
-      const scores = {};
-      let total = 0;
-      exam.subjects.forEach(sub => {
-        let correct = 0;
-        for (let i = 0; i < 40; i++) {
-          if (exam.answers[`${sub}-${i}`] === questions[sub][i].ans) correct++;
-        }
-        scores[sub] = Math.round(correct/40*100);
-        total += correct;
-      });
-      const percentage = Math.round(total / (exam.subjects.length*40) * 100);
-      const grade = percentage >= 70 ? 'A' : percentage >= 60 ? 'B' : percentage >= 50 ? 'C' : percentage >= 40 ? 'D' : 'F';
+  clearInterval(timerInterval);
 
-      const result = {
-        name: user,
-        class: "SSS1", // you can add class selection later
-        subjects: exam.subjects,
-        scores,
-        total: percentage,
-        grade,
-        time: new Date().toISOString()
-      };
+  const scores = {};
+  const correctAnswers = {};  // for per-subject correct count
+  let totalCorrect = 0;
 
-      attempts.push(result);
-      localStorage.setItem('excellence_attempts', JSON.stringify(attempts));
-
-      exam = { step: 'result', result };
-      renderResult();
+  exam.subjects.forEach(sub => {
+    let correct = 0;
+    for (let i = 0; i < 40; i++) {
+      const userKey = `${sub}-${i}`;
+      if (exam.answers[userKey] === exam.classQuestions[sub][i].ans) {
+        correct++;
+      }
     }
+    scores[sub] = Math.round(correct / 40 * 100);
+    correctAnswers[sub] = correct;
+    totalCorrect += correct;
+  });
 
+  const totalQuestions = exam.subjects.length * 40;
+  const percentage = Math.round(totalCorrect / totalQuestions * 100);
+  const grade = percentage >= 70 ? 'A' :
+                percentage >= 60 ? 'B' :
+                percentage >= 50 ? 'C' :
+                percentage >= 40 ? 'D' : 'F';
+
+  const studentData = students[user] || {
+    firstName: user.charAt(0).toUpperCase() + user.slice(1).toLowerCase(),
+    lastName: '',
+    class: 'Unknown',
+    school: 'Excellence Tutorial'
+  };
+
+  const result = {
+    name: `${studentData.firstName} ${studentData.lastName}`.trim() || user,
+    username: user,
+    class: studentData.class,
+    school: studentData.school,
+    subjects: exam.subjects,
+    scores,                    // {subject: percentage}
+    correctAnswers,            // {subject: correct count}
+    totalQuestions,
+    totalCorrect,
+    total: percentage,
+    grade,
+    time: new Date().toISOString()
+  };
+
+  attempts.push(result);
+  localStorage.setItem('excellence_attempts', JSON.stringify(attempts));
+
+  // Preserve answers and add result for renderResult()
+  exam = {
+    step: 'result',
+    result,
+    answers: exam.answers,
+    classQuestions: exam.classQuestions  // keep for review/explanations
+  };
+
+  renderResult();
+}
+
+function shareViaWhatsApp() {
+  let message = `Hello Sir,\n\nHere is my attempt result. Thank you.\n\n`;
+  message += `Name: ${exam.result.name}\n`;
+  message += `Class: ${exam.result.class}\n`;
+  message += `Date: ${new Date(exam.result.time).toLocaleDateString()}\n\n`;
+  message += `Overall: ${exam.result.total}% (Grade ${exam.result.grade})\n`;
+  message += `Total Correct: ${exam.result.totalCorrect}/${exam.result.totalQuestions}\n\n`;
+  message += `Subject Scores:\n`;
+
+  exam.result.subjects.forEach(s => {
+    const correct = exam.result.correctAnswers[s] || Math.round(exam.result.scores[s]/100 * 40);
+    message += `- ${s}: ${correct}/40 (${exam.result.scores[s]}%)\n`;
+  });
+
+  message += `\nThank you!`;
+
+  const encodedMessage = encodeURIComponent(message);
+
+  // Your number (international format, no + or spaces)
+  const teacherNumber = "2348155095660";
+
+  // Open WhatsApp with pre-filled message
+  window.open(`https://wa.me/${teacherNumber}?text=${encodedMessage}`, '_blank');
+
+  alert("WhatsApp opened with your full result! Just tap Send.");
+}
+    
 function renderResult() {
   const r = exam.result;
+
+  // Safe student data
+  const student = students[user] || {
+    firstName: user.charAt(0).toUpperCase() + user.slice(1).toLowerCase(),
+    lastName: '',
+    class: 'Unknown Class',
+    school: 'Excellence Tutorial'
+  };
+
+  // Use the saved classQuestions from exam (preserved in finishExam)
+  const classQuestions = exam.classQuestions || {};
+
   document.getElementById('app').innerHTML = `
     <div class="max-w-6xl mx-auto glass p-10 mt-10 rounded-3xl">
       <div class="text-center mb-12">
@@ -793,23 +963,35 @@ function renderResult() {
           ${r.total}%
         </div>
         <div class="text-5xl font-bold mb-8">Grade: ${r.grade}</div>
-        <p class="text-2xl mb-8">Great job, ${user}! Here are your detailed corrections:</p>
+        <p class="text-2xl mb-8">
+          Great job, ${student.firstName} ${student.lastName}!<br>
+          Class: ${student.class} • School: ${student.school}
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 mt-8">
+        <button onclick="shareViaWhatsApp()" class="btn bg-green-600 hover:bg-green-700 text-xl px-12">
+          Send Result to Teacher on WhatsApp
+        </button>
       </div>
 
       <!-- Per-subject score summary -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-        ${r.subjects.map(s => `
-          <div class="glass-dark p-6 rounded-2xl text-center">
-            <div class="text-lg font-semibold">${s}</div>
-            <div class="text-5xl font-bold my-4">${r.scores[s]}%</div>
-            <div class="text-sm opacity-80">${Math.round(r.scores[s]/100 * 40)} / 40 correct</div>
-          </div>
-        `).join('')}
+        ${r.subjects.map(s => {
+          const correct = r.correctAnswers[s] || 0;
+          return `
+            <div class="glass-dark p-6 rounded-2xl text-center">
+              <div class="text-lg font-semibold">${s}</div>
+              <div class="text-5xl font-bold my-4">${r.scores[s]}%</div>
+              <div class="text-sm opacity-80">${correct} / 40 correct</div>
+            </div>
+          `;
+        }).join('')}
       </div>
 
       <!-- Detailed question review -->
-      ${r.subjects.map((subject, subjIdx) => {
-        const subjQuestions = questions[subject];
+      ${r.subjects.map((subject) => {
+        const subjQuestions = classQuestions[subject] || [];
         return `
           <div class="mb-12">
             <h2 class="text-3xl font-bold mb-6 text-center">${subject} — Review</h2>
@@ -818,25 +1000,22 @@ function renderResult() {
                 const userKey = `${subject}-${qIdx}`;
                 const userAnswer = exam.answers[userKey];
                 const isCorrect = userAnswer === q.ans;
-                const correctLetter = String.fromCharCode(65 + q.ans);
-                const userLetter = userAnswer !== undefined ? String.fromCharCode(65 + userAnswer) : '—';
-
                 return `
                   <div class="glass-dark p-8 rounded-2xl">
                     <div class="flex justify-between items-start mb-4">
-                      <div class="text-xl font-semibold">Q${qIdx + 1}: ${q.q}</div>
+                      <div class="text-xl font-semibold">Q${qIdx + 1}: ${q.q || 'Question not found'}</div>
                       <div class="text-2xl font-bold ${isCorrect ? 'text-green-400' : 'text-red-400'}">
                         ${isCorrect ? '✓ Correct' : '✗ Wrong'}
                       </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                      ${q.opts.map((opt, optIdx) => {
+                      ${(q.opts || []).map((opt, optIdx) => {
                         const isUser = optIdx === userAnswer;
                         const isCorr = optIdx === q.ans;
                         return `
                           <div class="p-4 rounded-xl ${isCorr ? 'bg-green-500/30 border-2 border-green-400' : isUser && !isCorr ? 'bg-red-500/30 border-2 border-red-400' : 'bg-white/5'}">
-                            <span class="font-bold">${String.fromCharCode(65 + optIdx)}.</span> ${opt}
+                            <span class="font-bold">${String.fromCharCode(65 + optIdx)}.</span> ${opt || ''}
                             ${isCorr ? ' <span class="ml-2 font-bold text-green-300">← Correct Answer</span>' : ''}
                             ${isUser && !isCorr ? ' <span class="ml-2 font-bold text-red-300">← Your Answer</span>' : ''}
                           </div>`;
@@ -846,7 +1025,7 @@ function renderResult() {
                     ${!isCorrect ? `
                       <div class="mt-4 p-4 bg-yellow-500/20 rounded-xl border border-yellow-400">
                         <p class="font-semibold text-yellow-300">Explanation:</p>
-                        <p>${q.exp}</p>
+                        <p>${q.exp || 'No explanation available.'}</p>
                       </div>` : ''
                     }
                   </div>`;
@@ -856,6 +1035,7 @@ function renderResult() {
       }).join('')}
 
       <div class="text-center mt-12">
+        <p class="text-xl mb-8 text-green-300">✅ Your result has been saved!</p>
         <button onclick="user=null;exam=null;render()" class="btn text-2xl px-16">
           Back to Home
         </button>
@@ -864,7 +1044,5 @@ function renderResult() {
 }
     render();
   </script>
-
-  <!-- ALL 320+ QUESTIONS GO HERE — FULLY INCLUDED BELOW -->
 </body>
 </html>
