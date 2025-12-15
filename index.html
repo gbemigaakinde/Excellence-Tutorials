@@ -61,6 +61,28 @@
     let timerInterval = null;
     let studentData = null;
 
+    // ADD THIS ENTIRE BLOCK HERE (critical for student login to work)
+    auth.onAuthStateChanged(async (firebaseUser) => {
+      if (firebaseUser) {
+        // A student is logged in
+        user = firebaseUser.uid;
+        const snap = await db.collection('students').doc(user).get();
+        if (snap.exists) {
+          studentData = snap.data();
+          loadOrStartExam();  // This shows subject selection or resumes exam
+        } else {
+          alert("Student profile not found. Please register again.");
+          auth.signOut();
+          render();
+        }
+      } else {
+        // No one logged in
+        user = null;
+        studentData = null;
+        render();  // Show login screen
+      }
+    });
+
     // ==== PLACE YOUR FULL QUESTIONS OBJECT HERE ====
     const questions = {
     jss1: {
