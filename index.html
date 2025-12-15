@@ -3687,7 +3687,15 @@ sss1: {
 
       auth.signInWithEmailAndPassword(email, pass)
         .then(() => {}) // onAuthStateChanged will handle render
-        .catch(err => alert("Login failed: " + err.message));
+        .catch(err => {
+  if (err.code === 'auth/invalid-email') {
+    alert("Please enter a valid email address.");
+  } else if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+    alert("Incorrect email or password. Please try again.");
+  } else {
+    alert("Login failed. Please check your connection and try again.");
+  }
+});
     }
 
     // RESUME FEATURE + EXAM FLOW
