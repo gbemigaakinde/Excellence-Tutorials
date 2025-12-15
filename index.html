@@ -3657,7 +3657,7 @@ sss1: {
       document.getElementById('loginDiv').classList.remove('hidden');
     }
 
-    function register() {
+function register() {
   const email = document.getElementById('regEmail').value.trim();
   const pass = document.getElementById('regPass').value;
   const name = document.getElementById('regName').value.trim();
@@ -3676,8 +3676,8 @@ sss1: {
       });
     })
     .then(() => {
-      alert("Registration successful! You can now login.");  // ← NEW: Success message
-      showLogin();  // Switch back to login form
+      alert("Registration successful! You can now login.");
+      showLogin();
     })
     .catch(err => {
       if (err.code === 'auth/email-already-in-use') {
@@ -3691,32 +3691,35 @@ sss1: {
       }
     });
 }
-    function login() {
-      const email = document.getElementById('loginEmail').value.trim();
-      const pass = document.getElementById('loginPass').value;
+  function login() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
 
-      if (email === "teacher@excellence.com" && pass === "Master") {
-        user = 'Teacher';
-        render();
-        return;
+  // Teacher hard-coded login (keeps working as before)
+  if (email === "teacher@excellence.com" && pass === "Master") {
+    user = 'Teacher';
+    render();
+    return;
+  }
+
+  // Student login with Firebase
+  auth.signInWithEmailAndPassword(email, pass)
+    .then(() => {
+      // Success: the onAuthStateChanged listener will detect the login
+      // and automatically call loadOrStartExam() / render the student screen
+    })
+    .catch(err => {
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+        alert("Incorrect email or password. Please try again.");
+      } else if (err.code === 'auth/invalid-email') {
+        alert("Please enter a valid email address.");
+      } else if (err.code === 'auth/too-many-requests') {
+        alert("Too many failed attempts. Please try again later.");
+      } else {
+        alert("Login failed: " + err.message);
       }
-
-       auth.signInWithEmailAndPassword(email, pass)
-      .then(() => {
-        // Success: onAuthStateChanged will automatically load exam screen
-        // No need to do anything here
-      })
-      .catch(err => {
-        if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
-          alert("Incorrect email or password. Try again.");
-        } else if (err.code === 'auth/invalid-email') {
-          alert("Invalid email format.");
-        } else if (err.code === 'auth/too-many-requests') {
-          alert("Too many failed attempts. Try again later.");
-        } else {
-          alert("Login failed: " + err.message);
-        }
-      });
+    });
+}
     // RESUME FEATURE + EXAM FLOW
     async function loadOrStartExam() {
       const ongoingSnap = await db.collection('ongoingExams').doc(user).get();
