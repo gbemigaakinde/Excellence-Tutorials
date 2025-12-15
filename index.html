@@ -5,107 +5,72 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Excellence Tutorial Computer-Based Testing System</title>
   <!-- Standard favicon -->
-<link rel="icon" href="IMG_4512.png" type="image/png">
-
-<!-- For Apple devices -->
-<link rel="apple-touch-icon" href="IMG_4512.png">
-
-<!-- Optional: specify size for different devices -->
-<link rel="icon" type="image/png" sizes="32x32" href="IMG_4512.png">
-<link rel="icon" type="image/png" sizes="16x16" href="IMG_4512.png">
+  <link rel="icon" href="IMG_4512.png" type="image/png">
+  <link rel="apple-touch-icon" href="IMG_4512.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="IMG_4512.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="IMG_4512.png">
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Firebase SDKs (must be loaded) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
   <style>
-  /* Main background with subtle animation */
-  body {
-    margin: 0; padding: 0; min-height: 100vh;
-    background: linear-gradient(-45deg, #1e1b4b, #2e1065, #4c1d95, #6b21b6);
-    background-size: 400% 400%;
-    animation: gradient 15s ease infinite;
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    color: white;
-  }
-  @keyframes gradient { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
-
-  /* Premium glassmorphism card */
-  .glass {
-    background: rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: 2rem;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-  }
-
-  /* Dark glass for questions & results */
-  .glass-dark {
-    background: rgba(0, 0, 0, 0.35);
-    backdrop-filter: blur(12px);
-    border-radius: 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  /* Beautiful buttons */
-  .btn {
-    @apply bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 
-           text-white font-bold py-5 px-10 rounded-2xl transition-all duration-300 
-           transform hover:scale-105 shadow-xl text-lg;
-  }
-
-  /* Grade badges — make them pop! */
-  .grade-A { @apply bg-green-500 shadow-green-500/50; }
-  .grade-B { @apply bg-blue-500 shadow-blue-500/50; }
-  .grade-C { @apply bg-yellow-500 shadow-yellow-500/50; }
-  .grade-D { @apply bg-orange-500 shadow-orange-500/50; }
-  .grade-F { @apply bg-red-500 shadow-red-500/50; }
-
-  /* Timer glow when low */
-  #timer.low { @apply text-red-400 animate-pulse text-5xl font-bold; }
-
-  /* Input fields — premium look */
-  input[type="text"], input[type="password"] {
-    @apply w-full p-5 rounded-2xl bg-white/15 border border-white/30 
-           text-white placeholder-gray-300 focus:outline-none focus:ring-4 
-           focus:ring-purple-500/50 backdrop-blur transition;
-  }
-
-  /* Radio buttons — bigger and beautiful */
-  input[type="radio"] {
-    @apply w-6 h-6 accent-purple-500 transform scale-125;
-  }
-
-  /* Hover effect on options */
-  label:hover {
-    @apply bg-white/10 transform scale-102 transition;
-  }
-
-  /* Scrollbar styling (optional beauty touch) */
-  ::-webkit-scrollbar { width: 10px; }
-  ::-webkit-scrollbar-track { @apply bg-transparent; }
-  ::-webkit-scrollbar-thumb { @apply bg-white/30 rounded-full; }
-  ::-webkit-scrollbar-thumb:hover { @apply bg-white/50; }
-</style>
+    /* Your original beautiful styles - unchanged */
+    body { margin: 0; padding: 0; min-height: 100vh; background: linear-gradient(-45deg, #1e1b4b, #2e1065, #4c1d95, #6b21b6); background-size: 400% 400%; animation: gradient 15s ease infinite; font-family: 'Segoe UI', system-ui, sans-serif; color: white; }
+    @keyframes gradient { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+    .glass { background: rgba(255, 255, 255, 0.12); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 2rem; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); }
+    .glass-dark { background: rgba(0, 0, 0, 0.35); backdrop-filter: blur(12px); border-radius: 1.5rem; border: 1px solid rgba(255, 255, 255, 0.1); }
+    .btn { @apply bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-5 px-10 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-xl text-lg; }
+    .grade-A { @apply bg-green-500 shadow-green-500/50; }
+    .grade-B { @apply bg-blue-500 shadow-blue-500/50; }
+    .grade-C { @apply bg-yellow-500 shadow-yellow-500/50; }
+    .grade-D { @apply bg-orange-500 shadow-orange-500/50; }
+    .grade-F { @apply bg-red-500 shadow-red-500/50; }
+    #timer.low { @apply text-red-400 animate-pulse text-5xl font-bold; }
+    input[type="text"], input[type="password"], input[type="email"] { @apply w-full p-5 rounded-2xl bg-white/15 border border-white/30 text-white placeholder-gray-300 focus:outline-none focus:ring-4 focus:ring-purple-500/50 backdrop-blur transition; }
+    input[type="radio"] { @apply w-6 h-6 accent-purple-500 transform scale-125; }
+    label:hover { @apply bg-white/10 transform scale-102 transition; }
+    ::-webkit-scrollbar { width: 10px; }
+    ::-webkit-scrollbar-track { @apply bg-transparent; }
+    ::-webkit-scrollbar-thumb { @apply bg-white/30 rounded-full; }
+    ::-webkit-scrollbar-thumb:hover { @apply bg-white/50; }
+  </style>
 </head>
 <body class="text-white">
   <div id="app" class="min-h-screen p-6"></div>
 
   <script>
-    // ALL DATA SAVED IN BROWSER — WORKS ON GITHUB PAGES!
-    let students = JSON.parse(localStorage.getItem('excellence_students') || '{}');
-    let attempts = JSON.parse(localStorage.getItem('excellence_attempts') || '[]');
+    // ==== STEP 1: PASTE YOUR FIREBASE CONFIG HERE ====
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-    // CREDENTIALS
-    const credentials = {
-      "Shiloh": "Olusegun",
-      "Sophiat": "Busari",
-      "Maria": "Gbadamosi",
-      "Muhammed": "Jimoh",
-      "Teacher": "Master"
-    };
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCQk1Q5GyCVo3cKNcHaYHVzAnVeWlqkzns",
+  authDomain: "excellencecbt.firebaseapp.com",
+  projectId: "excellencecbt",
+  storageBucket: "excellencecbt.firebasestorage.app",
+  messagingSenderId: "24170253162",
+  appId: "1:24170253162:web:6e6cb86c5ffc84aebaf313"
+};
 
-    let user = null;
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+    // ===============================================
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let user = null;           // null = not logged in, 'Teacher' = teacher, UID = student
     let exam = null;
+    let timerInterval = null;
 
-    // FULL 320+ QUESTIONS (40 per subject)
+    // ==== PLACE YOUR FULL QUESTIONS OBJECT HERE ====
     const questions = {
     jss1: {
     'English Language': [
@@ -2555,7 +2520,7 @@ sss1: {
     {"q":"Symbiosis in which both organisms benefit is called","opts":["parasitism","commensalism","mutualism","competition"],"ans":2,"exp":"Example: lichens (alga + fungus)."}
 ]
   },
-  sss2: {
+        sss2: {
    'English Language': [
     {"q":"Passage: 'The meteoric ascent of artificial intelligence has precipitated a paradigm shift in labour markets, displacing rote cognitive tasks while simultaneously engendering novel vocations that demand advanced metacognitive faculties. Yet this technological cornucopia exacts a toll: widening chasms of inequality as those bereft of requisite digital literacy are inexorably marginalised.' What is the author's primary concern?","opts":["AI will eliminate all human jobs.","Technological progress creates new opportunities but exacerbates social inequality.","AI advancement is slower than anticipated.","Digital literacy is irrelevant in modern economies."],"ans":1,"exp":"The passage acknowledges benefits ('engendering novel vocations') but emphasises the negative consequence of inequality for those lacking skills ('widening chasms... marginalised')."},
     {"q":"From the same passage, the phrase 'technological cornucopia' is best understood as","opts":["a dangerous overabundance","an abundant supply of benefits","a mythical horn of plenty","a deceptive illusion"],"ans":1,"exp":"'Cornucopia' metaphorically denotes abundance; here it ironically highlights the plentiful technological advances before introducing their social cost."},
@@ -3630,142 +3595,64 @@ sss1: {
 ]
 }
 };
-      
+    // ===============================================
+
     function render() {
       const app = document.getElementById('app');
-if (!user) {
-  app.innerHTML = `
-    <div class="max-w-md mx-auto mt-20 glass p-10 text-center">
-      <div class="text-center mb-12">
-        <h1 class="text-6xl font-extrabold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent mb-4">
-          Excellence Tutorial
-        </h1>
-        <p class="text-2xl opacity-90">Computer-based Testing System</p>
-      </div>
 
-      <p class="text-center text-xl mb-8 font-semibold">
-       Please login or register to start your exam.
-      </p>
-
-      <!-- Login Form -->
-      <div id="loginForm">
-        <input id="u" class="w-full p-4 rounded-xl mb-4 bg-white/20 text-white placeholder-gray-300" placeholder="Username" autocomplete="off">
-        <input id="p" type="password" class="w-full p-4 rounded-xl mb-6 bg-white/20 text-white placeholder-gray-300" placeholder="Password">
-        <button onclick="login()" class="btn w-full text-xl mb-4">LOGIN</button>
-        <p class="text-sm opacity-80">New student? <span onclick="showRegister()" class="underline cursor-pointer text-pink-300">Register here</span></p>
-      </div>
-
-<!-- Registration Form (hidden initially) -->
-<div id="registerForm" class="hidden space-y-4">
-  <input id="regFirstName" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" placeholder="First Name" required>
-  <input id="regLastName" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" placeholder="Last Name" required>
-  
-  <select id="regClass" class="w-full p-4 rounded-xl bg-white/20 text-white" required>
-    <option value="">Select Class</option>
-    <optgroup label="Junior Secondary">
-      <option value="JSS1">JSS 1</option>
-      <option value="JSS2">JSS 2</option>
-      <option value="JSS3">JSS 3</option>
-    </optgroup>
-    <optgroup label="Senior Secondary">
-      <option value="SSS1">SSS 1</option>
-      <option value="SSS2">SSS 2</option>
-      <option value="SSS3">SSS 3</option>
-    </optgroup>
-  </select>
-  
-  <input id="regSchool" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" placeholder="School Name" required>
-  
-  <select id="regFavourite" class="w-full p-4 rounded-xl bg-white/20 text-white" required>
-    <option value="">Favourite Subject</option>
-    <option>English Language</option>
-    <option>General Mathematics</option>
-    <option>Physics</option>
-    <option>Chemistry</option>
-    <option>Basic Science</option>
-    <option>Business Study</option>
-    <option>Basic Technology</option>
-    <option>Biology</option>
-    <option>Economics</option>
-    <option>Civic Education</option>
-    <option>Literature in English</option>
-  </select>
-  
-  <input id="regUsername" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" placeholder="Choose Username" required>
-  <input id="regPassword" type="password" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" placeholder="Choose Password" required>
-  
-  <button onclick="register()" class="btn w-full text-xl">COMPLETE REGISTRATION</button>
-  <p class="text-sm opacity-80 text-center">Already have an account? <span onclick="showLogin()" class="underline cursor-pointer text-pink-300">Login here</span></p>
-    </div>`;
-      }
-else if (user === 'Teacher') {
-  // Sort attempts by date (newest first)
-  const sortedAttempts = [...attempts].sort((a, b) => new Date(b.time) - new Date(a.time));
-
-  // Get list of all registered students
-  const registeredStudents = Object.values(students).map(s => ({
-    username: Object.keys(students).find(key => students[key] === s),
-    ...s
-  })).sort((a, b) => a.firstName.localeCompare(b.firstName));
-
-  app.innerHTML = `
-    <div class="max-w-6xl mx-auto glass p-8 mt-8 rounded-3xl">
-      <div class="flex justify-between items-center mb-8">
-        <h1 class="text-4xl font-bold">Teacher Dashboard</h1>
-        <button onclick="user=null;render()" class="btn">Logout</button>
-      </div>
-
-      <!-- Student Register -->
-      <div class="mb-12">
-        <h2 class="text-3xl font-bold mb-6">Student Register (${registeredStudents.length} students)</h2>
-        <div class="glass-dark p-6 rounded-2xl max-h-96 overflow-y-auto">
-          ${registeredStudents.length === 0 ? 
-            '<p class="text-center text-xl opacity-70">No registered students yet</p>' :
-            '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">' +
-              registeredStudents.map(stu => `
-                <div class="bg-white/10 p-4 rounded-xl">
-                  <div class="font-semibold">${stu.firstName} ${stu.lastName}</div>
-                  <div class="text-sm opacity-80">${stu.class} • ${stu.school}</div>
-                  <div class="text-xs opacity-60">Username: ${stu.username}</div>
-                </div>
-              `).join('') +
-            '</div>'
-          }
-        </div>
-      </div>
-
-      <!-- Exam Results -->
-      <h2 class="text-3xl font-bold mb-6">Exam Results (${sortedAttempts.length} attempts)</h2>
-      <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        ${sortedAttempts.length === 0 ? 
-          '<p class="text-center col-span-3 text-xl opacity-70">No results yet</p>' :
-          sortedAttempts.map((a, index) => `
-            <div class="glass-dark p-6 rounded-2xl relative">
-              <button onclick="deleteResult(${attempts.indexOf(a)})" class="absolute top-4 right-4 text-red-400 hover:text-red-300 text-2xl">×</button>
-              <div class="font-bold text-xl">${a.name}</div>
-              <div class="text-sm opacity-80">${a.class} • ${new Date(a.time).toLocaleDateString()} ${new Date(a.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-              <div class="mt-4">
-                ${a.subjects.map(s => `
-                  <div class="flex justify-between">
-                    <span>${s}:</span>
-                    <b>${a.correctAnswers[s] || Math.round(a.scores[s]/100 * 40)}/40 (${a.scores[s]}%)</b>
-                  </div>
-                `).join('')}
-              </div>
-              <div class="mt-4 text-center">
-                <div class="text-3xl font-bold">${a.totalCorrect}/${a.totalQuestions} correct</div>
-                <div class="text-2xl font-bold ${a.grade === 'A' ? 'grade-A' : a.grade === 'B' ? 'grade-B' : a.grade === 'C' ? 'grade-C' : a.grade === 'D' ? 'grade-D' : 'grade-F'} p-3 rounded-xl mt-2">
-                  ${a.total}% → Grade ${a.grade}
-                </div>
-              </div>
+      if (!user) {
+        // LOGIN / REGISTER SCREEN
+        app.innerHTML = `
+          <div class="max-w-md mx-auto mt-20 glass p-10 text-center">
+            <div class="text-center mb-12">
+              <h1 class="text-6xl font-extrabold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent mb-4">
+                Excellence Tutorial
+              </h1>
+              <p class="text-2xl opacity-90">Computer-based Testing System</p>
             </div>
-          `).join('')
-        }
-      </div>
-    </div>`;
-}
+
+            <p class="text-center text-xl mb-8 font-semibold">
+              Please login or register to start your exam.
+            </p>
+
+            <!-- Login Form -->
+            <div id="loginDiv">
+              <input id="loginEmail" type="email" class="w-full p-4 rounded-xl mb-4 bg-white/20 text-white placeholder-gray-300" placeholder="Email" required>
+              <input id="loginPass" type="password" class="w-full p-4 rounded-xl mb-6 bg-white/20 text-white placeholder-gray-300" placeholder="Password" required>
+              <button onclick="login()" class="btn w-full text-xl mb-4">LOGIN</button>
+              <p class="text-sm opacity-80">New student? <span onclick="showRegister()" class="underline cursor-pointer text-pink-300">Register here</span></p>
+              <p class="text-xs mt-4 opacity-60">Teacher login: email "teacher@excellence.com", password "Master"</p>
+            </div>
+
+            <!-- Register Form (hidden at first) -->
+            <div id="registerDiv" class="hidden space-y-4">
+              <input id="regName" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" placeholder="Full Name" required>
+              <select id="regClass" class="w-full p-4 rounded-xl bg-white/20 text-white" required>
+                <option value="">Select Class</option>
+                <option>JSS1</option><option>JSS2</option><option>JSS3</option>
+                <option>SSS1</option><option>SSS2</option><option>SSS3</option>
+              </select>
+              <input id="regSchool" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" placeholder="School Name" required>
+              <input id="regEmail" type="email" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" placeholder="Email" required>
+              <input id="regPass" type="password" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" placeholder="Password (min 6 chars)" required>
+              <button onclick="register()" class="btn w-full text-xl">REGISTER</button>
+              <p class="text-sm opacity-80 text-center"><span onclick="showLogin()" class="underline cursor-pointer text-pink-300">Back to Login</span></p>
+            </div>
+          </div>`;
+      }
+      else if (user === 'Teacher') {
+        // TEACHER DASHBOARD - realtime from Firestore
+        app.innerHTML = `<div class="max-w-6xl mx-auto glass p-8 mt-8 rounded-3xl">
+          <div class="flex justify-between items-center mb-8">
+            <h1 class="text-4xl font-bold">Teacher Dashboard</h1>
+            <button onclick="logout()" class="btn">Logout</button>
+          </div>
+          <div id="teacherContent" class="text-center">Loading results...</div>
+        </div>`;
+        loadTeacherDashboard();
+      }
       else {
-        // Student exam flow
+        // STUDENT EXAM FLOW
         if (!exam) startSubjectSelection();
         else if (exam.step === 'subjects') renderSubjectSelection();
         else if (exam.step === 'exam') renderExam();
@@ -3773,117 +3660,97 @@ else if (user === 'Teacher') {
       }
     }
 
-function deleteResult(index) {
-  if (confirm("Are you sure you want to delete this result permanently?")) {
-    attempts.splice(index, 1);
-    localStorage.setItem('excellence_attempts', JSON.stringify(attempts));
-    render();  // refresh dashboard
-  }
-}
-function login() {
-  const enteredUsername = document.getElementById('u').value.trim();
-  const enteredPassword = document.getElementById('p').value.trim();
-
-  const username = enteredUsername.toLowerCase();
-
-  // TEACHER LOGIN - CHECKED FIRST
-  if (username === 'teacher' && enteredPassword === 'Master') {
-    user = 'Teacher';
-    render();
-    return;  // STOP HERE — very important
-  }
-
-  // STUDENT LOGIN - only if not teacher
-  if (students[username] && students[username].password === enteredPassword) {
-    user = username;
-    render();
-    return;
-  }
-
-  // Wrong credentials
-  alert("Wrong username or password!");
-}
+    function showRegister() {
+      document.getElementById('loginDiv').classList.add('hidden');
+      document.getElementById('registerDiv').classList.remove('hidden');
+    }
+    function showLogin() {
+      document.getElementById('registerDiv').classList.add('hidden');
+      document.getElementById('loginDiv').classList.remove('hidden');
+    }
 
     function register() {
-  const first = document.getElementById('regFirstName').value.trim();
-  const last = document.getElementById('regLastName').value.trim();
-  const classLevel = document.getElementById('regClass').value;
-  const school = document.getElementById('regSchool').value.trim();
-  const favourite = document.getElementById('regFavourite').value;
-  const username = document.getElementById('regUsername').value.trim().toLowerCase();
-  const password = document.getElementById('regPassword').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const pass = document.getElementById('regPass').value;
+      const name = document.getElementById('regName').value.trim();
+      const classLevel = document.getElementById('regClass').value;
+      const school = document.getElementById('regSchool').value.trim();
 
-  if (!first || !last || !classLevel || !school || !favourite || !username || !password) {
-    alert("Please fill in all fields!");
-    return;
-  }
+      if (!email || !pass || pass.length < 6 || !name || !classLevel || !school) {
+        alert("Please fill all fields correctly. Password must be at least 6 characters.");
+        return;
+      }
 
-  if (username.length < 4 || password.length < 4) {
-    alert("Username and password must be at least 4 characters long.");
-    return;
-  }
+      auth.createUserWithEmailAndPassword(email, pass)
+        .then(cred => {
+          return db.collection('students').doc(cred.user.uid).set({
+            name, class: classLevel, school, email, createdAt: new Date()
+          });
+        })
+        .then(() => {
+          alert("Registration successful! You can now login.");
+          showLogin();
+        })
+        .catch(err => alert("Error: " + err.message));
+    }
 
-  // Check if username already exists
-  if (students[username]) {
-    alert("This username is already taken. Please choose another.");
-    return;
-  }
+    function login() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const pass = document.getElementById('loginPass').value;
 
-  // Save student with full details
-  students[username] = {
-    password: password,
-    firstName: first,
-    lastName: last,
-    class: classLevel,
-    school: school,
-    favouriteSubject: favourite,
-    registeredAt: new Date().toISOString()
-  };
-  localStorage.setItem('excellence_students', JSON.stringify(students));
+      if (email === "teacher@excellence.com" && pass === "Master") {
+        user = 'Teacher';
+        render();
+        return;
+      }
 
-  alert(`Registration Successful! 🎉\n\nWelcome, ${first}!\nUsername: ${username}\n\nYou can now login with your username and password.`);
-  showLogin();
-}
-    function showRegister() {
-  document.getElementById('loginForm').classList.add('hidden');
-  document.getElementById('registerForm').classList.remove('hidden');
-}
+      auth.signInWithEmailAndPassword(email, pass)
+        .then(cred => {
+          user = cred.user.uid;
+          render();
+        })
+        .catch(err => alert("Login failed: " + err.message));
+    }
 
-function showLogin() {
-  document.getElementById('registerForm').classList.add('hidden');
-  document.getElementById('loginForm').classList.remove('hidden');
-}
+    function logout() {
+      auth.signOut();
+      user = null;
+      exam = null;
+      render();
+    }
+
+    // ================= STUDENT EXAM FUNCTIONS (almost same as your original) =================
     function startSubjectSelection() {
       exam = { step: 'subjects', chosen: [] };
       render();
     }
 
- function renderSubjectSelection() {
-  const student = students[user] || { firstName: user, lastName: '', class: 'Unknown', school: 'Excellence Tutorial' };
-  const classKey = student.class.toLowerCase().replace(' ', ''); // "JSS1" → "jss1", "SSS 3" → "sss3"
+    async function renderSubjectSelection() {
+      const studentDoc = await db.collection('students').doc(user).get();
+      const student = studentDoc.data();
 
-  const availableSubjects = questions[classKey] ? Object.keys(questions[classKey]) : [];
+      const classKey = student.class.toLowerCase().replace(' ', '');
 
-  document.getElementById('app').innerHTML = `
-    <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
-      <h1 class="text-4xl font-bold mb-8">Welcome, ${student.firstName} ${student.lastName || ''}!</h1>
-      <p>Class: ${student.class} • School: ${student.school}</p>
-      <p class="text-xl mb-8">Select at least 2 subjects for your exam</p>
+      const available = questions[classKey] ? Object.keys(questions[classKey]) : [];
 
-      ${availableSubjects.length === 0 ? 
-        '<p class="text-red-400 text-2xl">No subjects available for your class yet. Contact teacher.</p>' :
-        `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          ${availableSubjects.map(s => `
-            <label class="glass p-6 rounded-xl cursor-pointer hover:scale-105 transition">
-              <input type="checkbox" value="${s}" onchange="toggleSubject(this)"> ${s}
-            </label>`).join('')}
-        </div>`
-      }
+      document.getElementById('app').innerHTML = `
+        <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
+          <h1 class="text-4xl font-bold mb-8">Welcome, ${student.name}!</h1>
+          <p>Class: ${student.class} • School: ${student.school}</p>
+          <p class="text-xl mb-8">Select at least 2 subjects</p>
 
-      <button onclick="startExam()" id="startBtn" disabled class="btn text-xl px-12">Start Exam</button>
-      <button onclick="user=null;exam=null;render()" class="mt-6 text-sm opacity-70">← Logout</button>
-    </div>`;
-}
+          ${available.length === 0 ? '<p class="text-red-400">No subjects for your class</p>' :
+            `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              ${available.map(s => `
+                <label class="glass p-6 rounded-xl cursor-pointer hover:scale-105 transition">
+                  <input type="checkbox" value="${s}" onchange="toggleSubject(this)"> ${s}
+                </label>`).join('')}
+            </div>`}
+
+          <button onclick="startExam()" id="startBtn" disabled class="btn text-xl px-12">Start Exam</button>
+          <button onclick="logout()" class="mt-6 text-sm opacity-70">← Logout</button>
+        </div>`;
+    }
 
     function toggleSubject(cb) {
       if (cb.checked) exam.chosen.push(cb.value);
@@ -3892,32 +3759,30 @@ function showLogin() {
     }
 
     function startExam() {
-  const student = students[user];
-  const classKey = student.class.toLowerCase().replace(' ', '');
-
-  exam = {
-    step: 'exam',
-    subjects: [...exam.chosen],
-    current: 0,
-    questionIndex: 0,
-    answers: {},
-    startTime: Date.now(),
-    timeLeft: 40*60,
-    classQuestions: questions[classKey]  // save reference
-  };
-  startTimer();
-  renderExam();
-}
+      exam = {
+        step: 'exam',
+        subjects: [...exam.chosen],
+        current: 0,
+        questionIndex: 0,
+        answers: {},
+        startTime: Date.now(),
+        timeLeft: 40 * 60,
+        classKey: /* get from student data */ (await db.collection('students').doc(user).get()).data().class.toLowerCase().replace(' ', '')
+      };
+      startTimer();
+      renderExam();
+    }
 
     function renderExam() {
-  const s = exam.subjects[exam.current];
-  const q = exam.classQuestions[s][exam.questionIndex];  // ← changed here
+      const s = exam.subjects[exam.current];
+      const q = questions[exam.classKey][s][exam.questionIndex];
+
       document.getElementById('app').innerHTML = `
         <div class="max-w-4xl mx-auto glass p-8 mt-8 rounded-3xl">
           <div class="flex justify-between items-center mb-8">
             <div>
               <h2 class="text-3xl font-bold">${s}</h2>
-              <p>Q${exam.questionIndex+1} of 40 • Overall: ${exam.current*40 + exam.questionIndex + 1} of ${exam.subjects.length*40}</p>
+              <p>Q${exam.questionIndex+1}/40 • Overall ${exam.current*40 + exam.questionIndex + 1}/${exam.subjects.length*40}</p>
             </div>
             <div class="text-4xl font-bold" id="timer">40:00</div>
           </div>
@@ -3929,27 +3794,17 @@ function showLogin() {
                 ${opt}
               </label>`).join('')}
           </div>
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-  <button onclick="prevQuestion()" ${exam.current===0 && exam.questionIndex===0 ? 'disabled' : ''} class="btn md:col-start-1">
-    ← Previous
-  </button>
-
-  <button onclick="confirmSubmit()" class="btn bg-orange-600 hover:bg-orange-700 md:col-start-2">
-    Submit Exam
-  </button>
-
-  ${exam.current === exam.subjects.length-1 && exam.questionIndex === 39 ? '' :
-    `<button onclick="nextQuestion()" class="btn md:col-start-3">
-      Next →
-    </button>`
-  }
-</div>
+          <div class="grid grid-cols-3 gap-4 mt-8">
+            <button onclick="prevQuestion()" ${exam.current===0 && exam.questionIndex===0 ? 'disabled' : ''} class="btn">← Previous</button>
+            <button onclick="confirmSubmit()" class="btn bg-orange-600 hover:bg-orange-700">Submit Exam</button>
+            <button onclick="nextQuestion()" class="btn">Next →</button>
+          </div>
         </div>`;
       updateTimer();
     }
 
-    function saveAnswer(subject, qIndex, answer) {
-      exam.answers[`${subject}-${qIndex}`] = answer;
+    function saveAnswer(sub, idx, ans) {
+      exam.answers[`${sub}-${idx}`] = ans;
     }
 
     function nextQuestion() {
@@ -3974,230 +3829,130 @@ function showLogin() {
 
     function updateTimer() {
       if (!document.getElementById('timer')) return;
-      const m = Math.floor(exam.timeLeft/60).toString().padStart(2,'0');
-      const s = (exam.timeLeft%60).toString().padStart(2,'0');
-      const timerEl = document.getElementById('timer');
-      timerEl.textContent = `${m}:${s}`;
-      timerEl.className = exam.timeLeft <= 300 ? 'low' : 'text-5xl font-bold';
-      if (exam.timeLeft <= 300) document.getElementById('timer').classList.add('text-red-400');
+      const m = String(Math.floor(exam.timeLeft/60)).padStart(2,'0');
+      const s = String(exam.timeLeft%60).padStart(2,'0');
+      document.getElementById('timer').textContent = `${m}:${s}`;
+      if (exam.timeLeft <= 300) document.getElementById('timer').classList.add('low');
     }
 
     function confirmSubmit() {
-  const answered = Object.keys(exam.answers).length;
-  const total = exam.subjects.length * 40;
-  const unanswered = total - answered;
+      const total = exam.subjects.length * 40;
+      const answered = Object.keys(exam.answers).length;
+      if (confirm(`You have answered ${answered}/${total}. Submit now?`)) finishExam();
+    }
 
-  const overlay = document.createElement('div');
-  overlay.className = 'fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4';
-  overlay.innerHTML = `
-    <div class="glass p-8 rounded-3xl max-w-md w-full text-center">
-      <h2 class="text-3xl font-bold mb-6">⚠️ Submit Exam?</h2>
-      <p class="text-xl mb-4">You have answered <b>${answered}</b> out of <b>${total}</b> questions.</p>
-      ${unanswered > 0 ? `<p class="text-red-400 mb-6"><b>${unanswered}</b> questions are unanswered.</p>` : ''}
-      <p class="mb-8">Are you sure you want to submit now?</p>
-      <div class="grid grid-cols-2 gap-4">
-        <button onclick="this.closest('.fixed').remove()" class="btn bg-gray-600 hover:bg-gray-700">
-          Cancel
-        </button>
-        <button onclick="finishExam(); this.closest('.fixed').remove()" class="btn bg-red-600 hover:bg-red-700">
-          Yes, Submit
-        </button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-}
-    
-    function finishExam() {
-  clearInterval(timerInterval);
+    async function finishExam() {
+      clearInterval(timerInterval);
 
-  const scores = {};
-  const correctAnswers = {};  // for per-subject correct count
-  let totalCorrect = 0;
+      const studentDoc = await db.collection('students').doc(user).get();
+      const student = studentDoc.data();
 
-  exam.subjects.forEach(sub => {
-    let correct = 0;
-    for (let i = 0; i < 40; i++) {
-      const userKey = `${sub}-${i}`;
-      if (exam.answers[userKey] === exam.classQuestions[sub][i].ans) {
-        correct++;
+      const scores = {};
+      const correctAnswers = {};
+      let totalCorrect = 0;
+
+      for (const sub of exam.subjects) {
+        let correct = 0;
+        for (let i = 0; i < 40; i++) {
+          const key = `${sub}-${i}`;
+          if (exam.answers[key] === questions[exam.classKey][sub][i].ans) correct++;
+        }
+        scores[sub] = Math.round(correct / 40 * 100);
+        correctAnswers[sub] = correct;
+        totalCorrect += correct;
+      }
+
+      const percentage = Math.round(totalCorrect / (exam.subjects.length * 40) * 100);
+      const grade = percentage >= 70 ? 'A' : percentage >= 60 ? 'B' : percentage >= 50 ? 'C' : percentage >= 40 ? 'D' : 'F';
+
+      const result = {
+        studentId: user,
+        name: student.name,
+        class: student.class,
+        school: student.school,
+        subjects: exam.subjects,
+        scores,
+        correctAnswers,
+        totalCorrect,
+        totalQuestions: exam.subjects.length * 40,
+        percentage,
+        grade,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      await db.collection('results').add(result);
+
+      exam = { step: 'result', result };
+      renderResult();
+    }
+
+    function renderResult() {
+      const r = exam.result;
+      document.getElementById('app').innerHTML = `
+        <div class="max-w-6xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
+          <h1 class="text-6xl font-bold mb-4">Exam Complete!</h1>
+          <div class="text-8xl font-bold mb-6 ${r.grade==='A'?'text-green-400':''}">${r.percentage}%</div>
+          <div class="text-5xl font-bold mb-8">Grade: ${r.grade}</div>
+          <p class="text-2xl mb-8">Well done, ${r.name}!</p>
+
+          <button onclick="shareViaWhatsApp()" class="btn bg-green-600 hover:bg-green-700 text-xl mb-8">Send Result to Teacher (WhatsApp)</button>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+            ${r.subjects.map(s => `
+              <div class="glass-dark p-6 rounded-2xl text-center">
+                <div class="text-lg font-semibold">${s}</div>
+                <div class="text-5xl font-bold my-4">${r.scores[s]}%</div>
+                <div class="text-sm opacity-80">${r.correctAnswers[s]}/40 correct</div>
+              </div>`).join('')}
+          </div>
+
+          <button onclick="logout()" class="btn text-2xl px-16">Back to Login</button>
+        </div>`;
+    }
+
+    function shareViaWhatsApp() {
+      let msg = `Hello Sir,\n\nMy exam result:\nName: ${exam.result.name}\nClass: ${exam.result.class}\nOverall: ${exam.result.percentage}% (Grade ${exam.result.grade})\n\n`;
+      exam.result.subjects.forEach(s => {
+        msg += `${s}: ${exam.result.correctAnswers[s]}/40 (${exam.result.scores[s]}%)\n`;
+      });
+      msg += `\nThank you!`;
+      window.open(`https://wa.me/2348155095660?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    // TEACHER DASHBOARD - realtime
+    async function loadTeacherDashboard() {
+      const content = document.getElementById('teacherContent');
+      db.collection('results').orderBy('timestamp', 'desc')
+        .onSnapshot(async snapshot => {
+          const results = [];
+          for (const doc of snapshot.docs) {
+            const data = doc.data();
+            const studentDoc = await db.collection('students').doc(data.studentId).get();
+            const student = studentDoc.exists ? studentDoc.data() : {name: 'Unknown'};
+            results.push({...data, id: doc.id, studentName: student.name});
+          }
+
+          content.innerHTML = results.length === 0 ?
+            '<p class="text-2xl opacity-70">No results yet</p>' :
+            `<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              ${results.map(r => `
+                <div class="glass-dark p-6 rounded-2xl">
+                  <button onclick="deleteResult('${r.id}')" class="float-right text-red-400">×</button>
+                  <div class="font-bold text-xl">${r.studentName || r.name}</div>
+                  <div class="text-sm opacity-80">${r.class} • ${new Date(r.timestamp?.toDate()).toLocaleString()}</div>
+                  ${r.subjects.map(s => `<div class="mt-2"><b>${s}:</b> ${r.correctAnswers[s]}/40 (${r.scores[s]}%)</div>`).join('')}
+                  <div class="mt-4 text-center text-3xl font-bold">${r.percentage}% → Grade ${r.grade}</div>
+                </div>`).join('')}
+            </div>`;
+        });
+    }
+
+    function deleteResult(id) {
+      if (confirm("Delete this result permanently?")) {
+        db.collection('results').doc(id).delete();
       }
     }
-    scores[sub] = Math.round(correct / 40 * 100);
-    correctAnswers[sub] = correct;
-    totalCorrect += correct;
-  });
 
-  const totalQuestions = exam.subjects.length * 40;
-  const percentage = Math.round(totalCorrect / totalQuestions * 100);
-  const grade = percentage >= 70 ? 'A' :
-                percentage >= 60 ? 'B' :
-                percentage >= 50 ? 'C' :
-                percentage >= 40 ? 'D' : 'F';
-
-  const studentData = students[user] || {
-    firstName: user.charAt(0).toUpperCase() + user.slice(1).toLowerCase(),
-    lastName: '',
-    class: 'Unknown',
-    school: 'Excellence Tutorial'
-  };
-
-  const result = {
-    name: `${studentData.firstName} ${studentData.lastName}`.trim() || user,
-    username: user,
-    class: studentData.class,
-    school: studentData.school,
-    subjects: exam.subjects,
-    scores,                    // {subject: percentage}
-    correctAnswers,            // {subject: correct count}
-    totalQuestions,
-    totalCorrect,
-    total: percentage,
-    grade,
-    time: new Date().toISOString()
-  };
-
-  attempts.push(result);
-  localStorage.setItem('excellence_attempts', JSON.stringify(attempts));
-
-  // Preserve answers and add result for renderResult()
-  exam = {
-    step: 'result',
-    result,
-    answers: exam.answers,
-    classQuestions: exam.classQuestions  // keep for review/explanations
-  };
-
-  renderResult();
-}
-
-function shareViaWhatsApp() {
-  let message = `Hello Sir,\n\nHere is my attempt result. Thank you.\n\n`;
-  message += `Name: ${exam.result.name}\n`;
-  message += `Class: ${exam.result.class}\n`;
-  message += `Date: ${new Date(exam.result.time).toLocaleDateString()}\n\n`;
-  message += `Overall: ${exam.result.total}% (Grade ${exam.result.grade})\n`;
-  message += `Total Correct: ${exam.result.totalCorrect}/${exam.result.totalQuestions}\n\n`;
-  message += `Subject Scores:\n`;
-
-  exam.result.subjects.forEach(s => {
-    const correct = exam.result.correctAnswers[s] || Math.round(exam.result.scores[s]/100 * 40);
-    message += `- ${s}: ${correct}/40 (${exam.result.scores[s]}%)\n`;
-  });
-
-  message += `\nThank you!`;
-
-  const encodedMessage = encodeURIComponent(message);
-
-  // Your number (international format, no + or spaces)
-  const teacherNumber = "2348155095660";
-
-  // Open WhatsApp with pre-filled message
-  window.open(`https://wa.me/${teacherNumber}?text=${encodedMessage}`, '_blank');
-
-  alert("WhatsApp opened with your full result! Just tap Send.");
-}
-    
-function renderResult() {
-  const r = exam.result;
-
-  // Safe student data
-  const student = students[user] || {
-    firstName: user.charAt(0).toUpperCase() + user.slice(1).toLowerCase(),
-    lastName: '',
-    class: 'Unknown Class',
-    school: 'Excellence Tutorial'
-  };
-
-  // Use the saved classQuestions from exam (preserved in finishExam)
-  const classQuestions = exam.classQuestions || {};
-
-  document.getElementById('app').innerHTML = `
-    <div class="max-w-6xl mx-auto glass p-10 mt-10 rounded-3xl">
-      <div class="text-center mb-12">
-        <h1 class="text-6xl font-bold mb-4">Exam Complete!</h1>
-        <div class="text-8xl font-bold mb-6 ${r.grade==='A'?'text-green-400':r.grade==='B'?'text-blue-400':r.grade==='C'?'text-yellow-400':r.grade==='D'?'text-orange-400':'text-red-400'}">
-          ${r.total}%
-        </div>
-        <div class="text-5xl font-bold mb-8">Grade: ${r.grade}</div>
-        <p class="text-2xl mb-8">
-          Great job, ${student.firstName} ${student.lastName}!<br>
-          Class: ${student.class} • School: ${student.school}
-        </p>
-      </div>
-
-      <div class="grid grid-cols-2 gap-4 mt-8">
-        <button onclick="shareViaWhatsApp()" class="btn bg-green-600 hover:bg-green-700 text-xl px-12">
-          Send Result to Teacher on WhatsApp
-        </button>
-      </div>
-
-      <!-- Per-subject score summary -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-        ${r.subjects.map(s => {
-          const correct = r.correctAnswers[s] || 0;
-          return `
-            <div class="glass-dark p-6 rounded-2xl text-center">
-              <div class="text-lg font-semibold">${s}</div>
-              <div class="text-5xl font-bold my-4">${r.scores[s]}%</div>
-              <div class="text-sm opacity-80">${correct} / 40 correct</div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-
-      <!-- Detailed question review -->
-      ${r.subjects.map((subject) => {
-        const subjQuestions = classQuestions[subject] || [];
-        return `
-          <div class="mb-12">
-            <h2 class="text-3xl font-bold mb-6 text-center">${subject} — Review</h2>
-            <div class="space-y-6">
-              ${subjQuestions.map((q, qIdx) => {
-                const userKey = `${subject}-${qIdx}`;
-                const userAnswer = exam.answers[userKey];
-                const isCorrect = userAnswer === q.ans;
-                return `
-                  <div class="glass-dark p-8 rounded-2xl">
-                    <div class="flex justify-between items-start mb-4">
-                      <div class="text-xl font-semibold">Q${qIdx + 1}: ${q.q || 'Question not found'}</div>
-                      <div class="text-2xl font-bold ${isCorrect ? 'text-green-400' : 'text-red-400'}">
-                        ${isCorrect ? '✓ Correct' : '✗ Wrong'}
-                      </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                      ${(q.opts || []).map((opt, optIdx) => {
-                        const isUser = optIdx === userAnswer;
-                        const isCorr = optIdx === q.ans;
-                        return `
-                          <div class="p-4 rounded-xl ${isCorr ? 'bg-green-500/30 border-2 border-green-400' : isUser && !isCorr ? 'bg-red-500/30 border-2 border-red-400' : 'bg-white/5'}">
-                            <span class="font-bold">${String.fromCharCode(65 + optIdx)}.</span> ${opt || ''}
-                            ${isCorr ? ' <span class="ml-2 font-bold text-green-300">← Correct Answer</span>' : ''}
-                            ${isUser && !isCorr ? ' <span class="ml-2 font-bold text-red-300">← Your Answer</span>' : ''}
-                          </div>`;
-                      }).join('')}
-                    </div>
-
-                    ${!isCorrect ? `
-                      <div class="mt-4 p-4 bg-yellow-500/20 rounded-xl border border-yellow-400">
-                        <p class="font-semibold text-yellow-300">Explanation:</p>
-                        <p>${q.exp || 'No explanation available.'}</p>
-                      </div>` : ''
-                    }
-                  </div>`;
-              }).join('')}
-            </div>
-          </div>`;
-      }).join('')}
-
-      <div class="text-center mt-12">
-        <p class="text-xl mb-8 text-green-300">✅ Your result has been saved!</p>
-        <button onclick="user=null;exam=null;render()" class="btn text-2xl px-16">
-          Back to Home
-        </button>
-      </div>
-    </div>`;
-}
     render();
   </script>
 </body>
