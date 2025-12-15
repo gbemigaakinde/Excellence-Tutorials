@@ -11,13 +11,12 @@
   <link rel="icon" type="image/png" sizes="16x16" href="IMG_4512.png">
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Firebase SDKs (must be loaded) -->
+  <!-- Firebase SDKs (compat mode for simple HTML) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
   <style>
-    /* Your original beautiful styles - unchanged */
     body { margin: 0; padding: 0; min-height: 100vh; background: linear-gradient(-45deg, #1e1b4b, #2e1065, #4c1d95, #6b21b6); background-size: 400% 400%; animation: gradient 15s ease infinite; font-family: 'Segoe UI', system-ui, sans-serif; color: white; }
     @keyframes gradient { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
     .glass { background: rgba(255, 255, 255, 0.12); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 2rem; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); }
@@ -42,33 +41,25 @@
   <div id="app" class="min-h-screen p-6"></div>
 
   <script>
-    // ==== STEP 1: PASTE YOUR FIREBASE CONFIG HERE ====
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+    // YOUR FIREBASE CONFIG (already pasted by you)
+    const firebaseConfig = {
+      apiKey: "AIzaSyCQk1Q5GyCVo3cKNcHaYHVzAnVeWlqkzns",
+      authDomain: "excellencecbt.firebaseapp.com",
+      projectId: "excellencecbt",
+      storageBucket: "excellencecbt.firebasestorage.app",
+      messagingSenderId: "24170253162",
+      appId: "1:24170253162:web:6e6cb86c5ffc84aebaf313"
+    };
 
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyCQk1Q5GyCVo3cKNcHaYHVzAnVeWlqkzns",
-  authDomain: "excellencecbt.firebaseapp.com",
-  projectId: "excellencecbt",
-  storageBucket: "excellencecbt.firebasestorage.app",
-  messagingSenderId: "24170253162",
-  appId: "1:24170253162:web:6e6cb86c5ffc84aebaf313"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-    // ===============================================
-
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    let user = null;           // null = not logged in, 'Teacher' = teacher, UID = student
+    let user = null;           // 'Teacher' or Firebase UID
     let exam = null;
     let timerInterval = null;
+    let studentData = null;
 
     // ==== PLACE YOUR FULL QUESTIONS OBJECT HERE ====
     const questions = {
@@ -3595,13 +3586,24 @@ sss1: {
 ]
 }
 };
-    // ===============================================
+    // Auth state listener
+    auth.onAuthStateChanged(async (firebaseUser) => {
+      if (firebaseUser) {
+        user = firebaseUser.uid;
+        const snap = await db.collection('students').doc(user).get();
+        if (snap.exists) studentData = snap.data();
+        loadOrStartExam();   // Check for ongoing exam
+      } else {
+        user = null;
+        render();
+      }
+    });
 
     function render() {
       const app = document.getElementById('app');
 
       if (!user) {
-        // LOGIN / REGISTER SCREEN
+        // Login / Register Screen
         app.innerHTML = `
           <div class="max-w-md mx-auto mt-20 glass p-10 text-center">
             <div class="text-center mb-12">
@@ -3611,53 +3613,39 @@ sss1: {
               <p class="text-2xl opacity-90">Computer-based Testing System</p>
             </div>
 
-            <p class="text-center text-xl mb-8 font-semibold">
-              Please login or register to start your exam.
-            </p>
-
-            <!-- Login Form -->
             <div id="loginDiv">
-              <input id="loginEmail" type="email" class="w-full p-4 rounded-xl mb-4 bg-white/20 text-white placeholder-gray-300" placeholder="Email" required>
-              <input id="loginPass" type="password" class="w-full p-4 rounded-xl mb-6 bg-white/20 text-white placeholder-gray-300" placeholder="Password" required>
+              <input id="loginEmail" type="email" placeholder="Email" class="w-full p-4 rounded-xl mb-4 bg-white/20 text-white placeholder-gray-300" required>
+              <input id="loginPass" type="password" placeholder="Password" class="w-full p-4 rounded-xl mb-6 bg-white/20 text-white placeholder-gray-300" required>
               <button onclick="login()" class="btn w-full text-xl mb-4">LOGIN</button>
               <p class="text-sm opacity-80">New student? <span onclick="showRegister()" class="underline cursor-pointer text-pink-300">Register here</span></p>
-              <p class="text-xs mt-4 opacity-60">Teacher login: email "teacher@excellence.com", password "Master"</p>
+              <p class="text-xs mt-4 opacity-60">Teacher login: teacher@excellence.com / Master</p>
             </div>
 
-            <!-- Register Form (hidden at first) -->
             <div id="registerDiv" class="hidden space-y-4">
-              <input id="regName" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" placeholder="Full Name" required>
+              <input id="regName" placeholder="Full Name" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" required>
               <select id="regClass" class="w-full p-4 rounded-xl bg-white/20 text-white" required>
                 <option value="">Select Class</option>
                 <option>JSS1</option><option>JSS2</option><option>JSS3</option>
-                <option>SSS1</option><option>SSS2</option><option>SSS3</option>
+                <option>SSS1</option><option>SSS2</option><option>SSS3</option_od>
               </select>
-              <input id="regSchool" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" placeholder="School Name" required>
-              <input id="regEmail" type="email" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" placeholder="Email" required>
-              <input id="regPass" type="password" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" placeholder="Password (min 6 chars)" required>
+              <input id="regSchool" placeholder="School Name" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" required>
+              <input id="regEmail" type="email" placeholder="Email" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" required>
+              <input id="regPass" type="password" placeholder="Password (6+ chars)" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" required>
               <button onclick="register()" class="btn w-full text-xl">REGISTER</button>
               <p class="text-sm opacity-80 text-center"><span onclick="showLogin()" class="underline cursor-pointer text-pink-300">Back to Login</span></p>
             </div>
           </div>`;
-      }
-      else if (user === 'Teacher') {
-        // TEACHER DASHBOARD - realtime from Firestore
+      } else if (user === 'Teacher') {
         app.innerHTML = `<div class="max-w-6xl mx-auto glass p-8 mt-8 rounded-3xl">
           <div class="flex justify-between items-center mb-8">
             <h1 class="text-4xl font-bold">Teacher Dashboard</h1>
-            <button onclick="logout()" class="btn">Logout</button>
+            <button onclick="auth.signOut(); user=null; render()" class="btn">Logout</button>
           </div>
-          <div id="teacherContent" class="text-center">Loading results...</div>
+          <div id="teacherContent">Loading results...</div>
         </div>`;
         loadTeacherDashboard();
       }
-      else {
-        // STUDENT EXAM FLOW
-        if (!exam) startSubjectSelection();
-        else if (exam.step === 'subjects') renderSubjectSelection();
-        else if (exam.step === 'exam') renderExam();
-        else if (exam.step === 'result') renderResult();
-      }
+      // Student flow handled by loadOrStartExam()
     }
 
     function showRegister() {
@@ -3676,22 +3664,15 @@ sss1: {
       const classLevel = document.getElementById('regClass').value;
       const school = document.getElementById('regSchool').value.trim();
 
-      if (!email || !pass || pass.length < 6 || !name || !classLevel || !school) {
-        alert("Please fill all fields correctly. Password must be at least 6 characters.");
+      if (!email || pass.length < 6 || !name || !classLevel || !school) {
+        alert("Fill all fields. Password must be 6+ characters.");
         return;
       }
 
       auth.createUserWithEmailAndPassword(email, pass)
-        .then(cred => {
-          return db.collection('students').doc(cred.user.uid).set({
-            name, class: classLevel, school, email, createdAt: new Date()
-          });
-        })
-        .then(() => {
-          alert("Registration successful! You can now login.");
-          showLogin();
-        })
-        .catch(err => alert("Error: " + err.message));
+        .then(cred => db.collection('students').doc(cred.user.uid).set({name, class: classLevel, school, email, createdAt: new Date()}))
+        .then(() => alert("Registration successful! You can now login."))
+        .catch(err => alert("Registration error: " + err.message));
     }
 
     function login() {
@@ -3705,51 +3686,41 @@ sss1: {
       }
 
       auth.signInWithEmailAndPassword(email, pass)
-        .then(cred => {
-          user = cred.user.uid;
-          render();
-        })
+        .then(() => {}) // onAuthStateChanged will handle render
         .catch(err => alert("Login failed: " + err.message));
     }
 
-    function logout() {
-      auth.signOut();
-      user = null;
-      exam = null;
-      render();
+    // RESUME FEATURE + EXAM FLOW
+    async function loadOrStartExam() {
+      const ongoingSnap = await db.collection('ongoingExams').doc(user).get();
+      if (ongoingSnap.exists) {
+        exam = ongoingSnap.data();
+        startTimer();
+        renderExam();
+      } else {
+        startSubjectSelection();
+      }
     }
 
-    // ================= STUDENT EXAM FUNCTIONS (almost same as your original) =================
-    function startSubjectSelection() {
-      exam = { step: 'subjects', chosen: [] };
-      render();
-    }
-
-    async function renderSubjectSelection() {
-      const studentDoc = await db.collection('students').doc(user).get();
-      const student = studentDoc.data();
-
-      const classKey = student.class.toLowerCase().replace(' ', '');
-
+    async function startSubjectSelection() {
+      const classKey = studentData.class.toLowerCase().replace(/ /g, '');
       const available = questions[classKey] ? Object.keys(questions[classKey]) : [];
 
       document.getElementById('app').innerHTML = `
         <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
-          <h1 class="text-4xl font-bold mb-8">Welcome, ${student.name}!</h1>
-          <p>Class: ${student.class} • School: ${student.school}</p>
+          <h1 class="text-4xl font-bold mb-8">Welcome, ${studentData.name}!</h1>
+          <p>Class: ${studentData.class} • School: ${studentData.school}</p>
           <p class="text-xl mb-8">Select at least 2 subjects</p>
-
-          ${available.length === 0 ? '<p class="text-red-400">No subjects for your class</p>' :
+          ${available.length === 0 ? '<p class="text-red-400">No subjects for your class</p>' : 
             `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              ${available.map(s => `
-                <label class="glass p-6 rounded-xl cursor-pointer hover:scale-105 transition">
-                  <input type="checkbox" value="${s}" onchange="toggleSubject(this)"> ${s}
-                </label>`).join('')}
+              ${available.map(s => `<label class="glass p-6 rounded-xl cursor-pointer hover:scale-105 transition">
+                <input type="checkbox" value="${s}" onchange="toggleSubject(this)"> ${s}
+              </label>`).join('')}
             </div>`}
-
           <button onclick="startExam()" id="startBtn" disabled class="btn text-xl px-12">Start Exam</button>
-          <button onclick="logout()" class="mt-6 text-sm opacity-70">← Logout</button>
+          <button onclick="auth.signOut()" class="mt-6 text-sm opacity-70">Logout</button>
         </div>`;
+      exam = { step: 'subjects', chosen: [] };
     }
 
     function toggleSubject(cb) {
@@ -3758,7 +3729,8 @@ sss1: {
       document.getElementById('startBtn').disabled = exam.chosen.length < 2;
     }
 
-    function startExam() {
+    async function startExam() {
+      const classKey = studentData.class.toLowerCase().replace(/ /g, '');
       exam = {
         step: 'exam',
         subjects: [...exam.chosen],
@@ -3766,9 +3738,10 @@ sss1: {
         questionIndex: 0,
         answers: {},
         startTime: Date.now(),
-        timeLeft: 40 * 60,
-        classKey: /* get from student data */ (await db.collection('students').doc(user).get()).data().class.toLowerCase().replace(' ', '')
+        timeLeft: exam.chosen.length * 40 * 60, // seconds
+        classKey
       };
+      await db.collection('ongoingExams').doc(user).set(exam);
       startTimer();
       renderExam();
     }
@@ -3784,7 +3757,7 @@ sss1: {
               <h2 class="text-3xl font-bold">${s}</h2>
               <p>Q${exam.questionIndex+1}/40 • Overall ${exam.current*40 + exam.questionIndex + 1}/${exam.subjects.length*40}</p>
             </div>
-            <div class="text-4xl font-bold" id="timer">40:00</div>
+            <div class="text-4xl font-bold" id="timer">00:00</div>
           </div>
           <div class="glass-dark p-8 rounded-2xl text-xl">
             <p class="mb-8">${q.q}</p>
@@ -3797,14 +3770,15 @@ sss1: {
           <div class="grid grid-cols-3 gap-4 mt-8">
             <button onclick="prevQuestion()" ${exam.current===0 && exam.questionIndex===0 ? 'disabled' : ''} class="btn">← Previous</button>
             <button onclick="confirmSubmit()" class="btn bg-orange-600 hover:bg-orange-700">Submit Exam</button>
-            <button onclick="nextQuestion()" class="btn">Next →</button>
+            <button onclick="nextQuestion()" ${exam.current===exam.subjects.length-1 && exam.questionIndex===39 ? 'disabled' : ''} class="btn">Next →</button>
           </div>
         </div>`;
       updateTimer();
     }
 
-    function saveAnswer(sub, idx, ans) {
+    async function saveAnswer(sub, idx, ans) {
       exam.answers[`${sub}-${idx}`] = ans;
+      await db.collection('ongoingExams').doc(user).update({answers: exam.answers});
     }
 
     function nextQuestion() {
@@ -3819,33 +3793,31 @@ sss1: {
       renderExam();
     }
 
-    function startTimer() {
-      timerInterval = setInterval(() => {
+    async function startTimer() {
+      timerInterval = setInterval(async () => {
         exam.timeLeft--;
+        await db.collection('ongoingExams').doc(user).update({timeLeft: exam.timeLeft});
         if (exam.timeLeft <= 0) finishExam();
         updateTimer();
       }, 1000);
     }
 
     function updateTimer() {
-      if (!document.getElementById('timer')) return;
-      const m = String(Math.floor(exam.timeLeft/60)).padStart(2,'0');
-      const s = String(exam.timeLeft%60).padStart(2,'0');
-      document.getElementById('timer').textContent = `${m}:${s}`;
-      if (exam.timeLeft <= 300) document.getElementById('timer').classList.add('low');
+      const timerEl = document.getElementById('timer');
+      if (!timerEl) return;
+      const m = String(Math.floor(exam.timeLeft / 60)).padStart(2, '0');
+      const s = String(exam.timeLeft % 60).padStart(2, '0');
+      timerEl.textContent = `${m}:${s}`;
+      if (exam.timeLeft <= 300) timerEl.classList.add('low');
     }
 
     function confirmSubmit() {
-      const total = exam.subjects.length * 40;
-      const answered = Object.keys(exam.answers).length;
-      if (confirm(`You have answered ${answered}/${total}. Submit now?`)) finishExam();
+      if (confirm("Submit exam now?")) finishExam();
     }
 
     async function finishExam() {
       clearInterval(timerInterval);
-
-      const studentDoc = await db.collection('students').doc(user).get();
-      const student = studentDoc.data();
+      await db.collection('ongoingExams').doc(user).delete();
 
       const scores = {};
       const correctAnswers = {};
@@ -3865,11 +3837,11 @@ sss1: {
       const percentage = Math.round(totalCorrect / (exam.subjects.length * 40) * 100);
       const grade = percentage >= 70 ? 'A' : percentage >= 60 ? 'B' : percentage >= 50 ? 'C' : percentage >= 40 ? 'D' : 'F';
 
-      const result = {
+      await db.collection('results').add({
         studentId: user,
-        name: student.name,
-        class: student.class,
-        school: student.school,
+        name: studentData.name,
+        class: studentData.class,
+        school: studentData.school,
         subjects: exam.subjects,
         scores,
         correctAnswers,
@@ -3878,11 +3850,9 @@ sss1: {
         percentage,
         grade,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      };
+      });
 
-      await db.collection('results').add(result);
-
-      exam = { step: 'result', result };
+      exam = { step: 'result', result: {name: studentData.name, class: studentData.class, subjects: exam.subjects, scores, correctAnswers, percentage, grade} };
       renderResult();
     }
 
@@ -3891,12 +3861,10 @@ sss1: {
       document.getElementById('app').innerHTML = `
         <div class="max-w-6xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
           <h1 class="text-6xl font-bold mb-4">Exam Complete!</h1>
-          <div class="text-8xl font-bold mb-6 ${r.grade==='A'?'text-green-400':''}">${r.percentage}%</div>
+          <div class="text-8xl font-bold mb-6">${r.percentage}%</div>
           <div class="text-5xl font-bold mb-8">Grade: ${r.grade}</div>
           <p class="text-2xl mb-8">Well done, ${r.name}!</p>
-
           <button onclick="shareViaWhatsApp()" class="btn bg-green-600 hover:bg-green-700 text-xl mb-8">Send Result to Teacher (WhatsApp)</button>
-
           <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
             ${r.subjects.map(s => `
               <div class="glass-dark p-6 rounded-2xl text-center">
@@ -3905,52 +3873,44 @@ sss1: {
                 <div class="text-sm opacity-80">${r.correctAnswers[s]}/40 correct</div>
               </div>`).join('')}
           </div>
-
-          <button onclick="logout()" class="btn text-2xl px-16">Back to Login</button>
+          <button onclick="auth.signOut()" class="btn text-2xl px-16">Back to Login</button>
         </div>`;
     }
 
     function shareViaWhatsApp() {
       let msg = `Hello Sir,\n\nMy exam result:\nName: ${exam.result.name}\nClass: ${exam.result.class}\nOverall: ${exam.result.percentage}% (Grade ${exam.result.grade})\n\n`;
-      exam.result.subjects.forEach(s => {
-        msg += `${s}: ${exam.result.correctAnswers[s]}/40 (${exam.result.scores[s]}%)\n`;
-      });
+      exam.result.subjects.forEach(s => msg += `${s}: ${exam.result.correctAnswers[s]}/40 (${exam.result.scores[s]}%)\n`);
       msg += `\nThank you!`;
       window.open(`https://wa.me/2348155095660?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
-    // TEACHER DASHBOARD - realtime
-    async function loadTeacherDashboard() {
+    // Teacher Dashboard - realtime
+    function loadTeacherDashboard() {
       const content = document.getElementById('teacherContent');
-      db.collection('results').orderBy('timestamp', 'desc')
-        .onSnapshot(async snapshot => {
-          const results = [];
-          for (const doc of snapshot.docs) {
-            const data = doc.data();
-            const studentDoc = await db.collection('students').doc(data.studentId).get();
-            const student = studentDoc.exists ? studentDoc.data() : {name: 'Unknown'};
-            results.push({...data, id: doc.id, studentName: student.name});
-          }
-
-          content.innerHTML = results.length === 0 ?
-            '<p class="text-2xl opacity-70">No results yet</p>' :
-            `<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              ${results.map(r => `
-                <div class="glass-dark p-6 rounded-2xl">
-                  <button onclick="deleteResult('${r.id}')" class="float-right text-red-400">×</button>
-                  <div class="font-bold text-xl">${r.studentName || r.name}</div>
-                  <div class="text-sm opacity-80">${r.class} • ${new Date(r.timestamp?.toDate()).toLocaleString()}</div>
-                  ${r.subjects.map(s => `<div class="mt-2"><b>${s}:</b> ${r.correctAnswers[s]}/40 (${r.scores[s]}%)</div>`).join('')}
-                  <div class="mt-4 text-center text-3xl font-bold">${r.percentage}% → Grade ${r.grade}</div>
-                </div>`).join('')}
-            </div>`;
-        });
+      db.collection('results').orderBy('timestamp', 'desc').onSnapshot(async snapshot => {
+        const results = [];
+        for (const doc of snapshot.docs) {
+          const data = doc.data();
+          const studentSnap = await db.collection('students').doc(data.studentId).get();
+          const studentName = studentSnap.exists ? studentSnap.data().name : 'Unknown';
+          results.push({...data, id: doc.id, studentName});
+        }
+        content.innerHTML = results.length === 0 ? '<p class="text-2xl opacity-70">No results yet</p>' :
+          `<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            ${results.map(r => `
+              <div class="glass-dark p-6 rounded-2xl relative">
+                <button onclick="deleteResult('${r.id}')" class="absolute top-4 right-4 text-red-400 text-2xl">×</button>
+                <div class="font-bold text-xl">${r.studentName}</div>
+                <div class="text-sm opacity-80">${r.class} • ${r.timestamp ? new Date(r.timestamp.toDate()).toLocaleString() : ''}</div>
+                ${r.subjects.map(s => `<div class="mt-2"><b>${s}:</b> ${r.correctAnswers[s]}/40 (${r.scores[s]}%)</div>`).join('')}
+                <div class="mt-4 text-center text-3xl font-bold">${r.percentage}% → Grade ${r.grade}</div>
+              </div>`).join('')}
+          </div>`;
+      });
     }
 
     function deleteResult(id) {
-      if (confirm("Delete this result permanently?")) {
-        db.collection('results').doc(id).delete();
-      }
+      if (confirm("Delete this result permanently?")) db.collection('results').doc(id).delete();
     }
 
     render();
