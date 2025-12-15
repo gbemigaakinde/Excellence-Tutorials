@@ -3658,23 +3658,39 @@ sss1: {
     }
 
     function register() {
-      const email = document.getElementById('regEmail').value.trim();
-      const pass = document.getElementById('regPass').value;
-      const name = document.getElementById('regName').value.trim();
-      const classLevel = document.getElementById('regClass').value;
-      const school = document.getElementById('regSchool').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass = document.getElementById('regPass').value;
+  const name = document.getElementById('regName').value.trim();
+  const classLevel = document.getElementById('regClass').value;
+  const school = document.getElementById('regSchool').value.trim();
 
-      if (!email || pass.length < 6 || !name || !classLevel || !school) {
-        alert("Fill all fields. Password must be 6+ characters.");
-        return;
+  if (!email || pass.length < 6 || !name || !classLevel || !school) {
+    alert("Please fill all fields correctly. Password must be at least 6 characters.");
+    return;
+  }
+
+  auth.createUserWithEmailAndPassword(email, pass)
+    .then(cred => {
+      return db.collection('students').doc(cred.user.uid).set({
+        name, class: classLevel, school, email, createdAt: new Date()
+      });
+    })
+    .then(() => {
+      alert("Registration successful! You can now login.");  // ← NEW: Success message
+      showLogin();  // Switch back to login form
+    })
+    .catch(err => {
+      if (err.code === 'auth/email-already-in-use') {
+        alert("This email is already registered. Please login instead.");
+      } else if (err.code === 'auth/invalid-email') {
+        alert("Invalid email format.");
+      } else if (err.code === 'auth/weak-password') {
+        alert("Password too weak (minimum 6 characters).");
+      } else {
+        alert("Registration failed: " + err.message);
       }
-
-      auth.createUserWithEmailAndPassword(email, pass)
-        .then(cred => db.collection('students').doc(cred.user.uid).set({name, class: classLevel, school, email, createdAt: new Date()}))
-        .then(() => alert("Registration successful! You can now login."))
-        .catch(err => alert("Registration error: " + err.message));
-    }
-
+    });
+}
     function login() {
       const email = document.getElementById('loginEmail').value.trim();
       const pass = document.getElementById('loginPass').value;
@@ -3685,19 +3701,22 @@ sss1: {
         return;
       }
 
-      auth.signInWithEmailAndPassword(email, pass)
-        .then(() => {}) // onAuthStateChanged will handle render
-        .catch(err => {
-  if (err.code === 'auth/invalid-email') {
-    alert("Please enter a valid email address.");
-  } else if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
-    alert("Incorrect email or password. Please try again.");
-  } else {
-    alert("Login failed. Please check your connection, email, or password, and try again.");
-  }
-});
-    }
-
+       auth.signInWithEmailAndPassword(email, pass)
+      .then(() => {
+        // Success: onAuthStateChanged will automatically load exam screen
+        // No need to do anything here
+      })
+      .catch(err => {
+        if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+          alert("Incorrect email or password. Try again.");
+        } else if (err.code === 'auth/invalid-email') {
+          alert("Invalid email format.");
+        } else if (err.code === 'auth/too-many-requests') {
+          alert("Too many failed attempts. Try again later.");
+        } else {
+          alert("Login failed: " + err.message);
+        }
+      });
     // RESUME FEATURE + EXAM FLOW
     async function loadOrStartExam() {
       const ongoingSnap = await db.collection('ongoingExams').doc(user).get();
