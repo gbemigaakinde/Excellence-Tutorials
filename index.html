@@ -4081,27 +4081,24 @@ async function register() {
   content.innerHTML = '<p class="text-2xl opacity-70">Loading results...</p>';
 
   const q = db.collection('results').orderBy('timestamp', 'desc');
-  
-  q.onSnapshot(async (snapshot) => {
+
+  q.onSnapshot((snapshot) => {
     if (snapshot.empty) {
       content.innerHTML = '<p class="text-2xl opacity-70">No results yet</p>';
       return;
     }
 
-    const results = [];
-    for (const doc of snapshot.docs) {
+    const results = snapshot.docs.map(doc => {
       const data = doc.data();
-      const studentSnap = await db.collection('students').doc(data.studentId).get();
-      const studentName = studentSnap.exists ? studentSnap.data().name : 'Unknown Student';
-      results.push({ ...data, id: doc.id, studentName });
-    }
+      return { ...data, id: doc.id };
+    });
 
     content.innerHTML = `
       <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         ${results.map(r => `
           <div class="glass-dark p-6 rounded-2xl relative">
             <button onclick="deleteResult('${r.id}')" class="absolute top-4 right-4 text-red-400 text-2xl hover:scale-110">×</button>
-            <div class="font-bold text-xl">${r.studentName}</div>
+            <div class="font-bold text-xl">${r.name || 'Unknown Student'}</div>
             <div class="text-sm opacity-80">${r.class} • ${r.school}</div>
             <div class="text-sm opacity-70 mt-2">
               ${r.timestamp ? new Date(r.timestamp.toDate()).toLocaleString() : 'Just now'}
