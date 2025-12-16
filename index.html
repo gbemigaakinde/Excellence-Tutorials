@@ -3877,17 +3877,19 @@ function register() {
 
   for (const sub of exam.subjects) {
     let correct = 0;
-    const subjectQuestions = questions[exam.classKey][sub];  // <-- This line fixes the "undefined" error
+    const subjectQuestions = questions[exam.classKey][sub];  // <-- Critical line that was missing/broken
     for (let i = 0; i < 40; i++) {
       const key = `${sub}-${i}`;
-      if (exam.answers[key] === subjectQuestions[i].ans) correct++;
+      if (exam.answers[key] != null && exam.answers[key] === subjectQuestions[i].ans) {
+        correct++;
+      }
     }
-    scores[sub] = Math.round(correct / 40 * 100);
+    scores[sub] = Math.round((correct / 40) * 100);
     correctAnswers[sub] = correct;
     totalCorrect += correct;
   }
 
-  const percentage = Math.round(totalCorrect / (exam.subjects.length * 40) * 100);
+  const percentage = Math.round((totalCorrect / (exam.subjects.length * 40)) * 100);
   const grade = percentage >= 70 ? 'A' : percentage >= 60 ? 'B' : percentage >= 50 ? 'C' : percentage >= 40 ? 'D' : 'F';
 
   await db.collection('results').add({
@@ -3905,7 +3907,18 @@ function register() {
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   });
 
-  exam = { step: 'result', result: {name: studentData.name, class: studentData.class, subjects: exam.subjects, scores, correctAnswers, percentage, grade} };
+  exam = { 
+    step: 'result', 
+    result: {
+      name: studentData.name, 
+      class: studentData.class, 
+      subjects: exam.subjects, 
+      scores, 
+      correctAnswers, 
+      percentage, 
+      grade
+    } 
+  };
   renderResult();
 }
     function renderResult() {
