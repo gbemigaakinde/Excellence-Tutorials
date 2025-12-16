@@ -3726,16 +3726,16 @@ sss1: {
               <p class="text-sm opacity-80 text-center"><span onclick="showLogin()" class="underline cursor-pointer text-pink-300">Back to Login</span></p>
             </div>
           </div>`;
-      } else if (user === 'Teacher') {
-        app.innerHTML = `<div class="max-w-6xl mx-auto glass p-8 mt-8 rounded-3xl">
-          <div class="flex justify-between items-center mb-8">
-            <h1 class="text-4xl font-bold">Teacher Dashboard</h1>
-            <button onclick="auth.signOut(); user=null; render()" class="btn">Logout</button>
-          </div>
-          <div id="teacherContent">Loading results...</div>
-        </div>`;
-        loadTeacherDashboard();
-      }
+      } else if (user === 'bV4u2V7aakMF7EyYe1bpCXGj4ny1') {  // Your exact teacher UID
+  app.innerHTML = `<div class="max-w-6xl mx-auto glass p-8 mt-8 rounded-3xl">
+    <div class="flex justify-between items-center mb-8">
+      <h1 class="text-4xl font-bold">Teacher Dashboard</h1>
+      <button onclick="auth.signOut(); user=null; render()" class="btn">Logout</button>
+    </div>
+    <div id="teacherContent">Loading results...</div>
+  </div>`;
+  loadTeacherDashboard();
+}
       // Student flow handled by loadOrStartExam()
     }
 
