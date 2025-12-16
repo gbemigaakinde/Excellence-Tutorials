@@ -3727,13 +3727,18 @@ sss1: {
     }
 
     function showRegister() {
-      document.getElementById('loginDiv').classList.add('hidden');
-      document.getElementById('registerDiv').classList.remove('hidden');
-    }
-    function showLogin() {
-      document.getElementById('registerDiv').classList.add('hidden');
-      document.getElementById('loginDiv').classList.remove('hidden');
-    }
+  const loginDiv = document.getElementById('loginDiv');
+  const registerDiv = document.getElementById('registerDiv');
+  if (loginDiv) loginDiv.classList.add('hidden');
+  if (registerDiv) registerDiv.classList.remove('hidden');
+}
+
+function showLogin() {
+  const loginDiv = document.getElementById('loginDiv');
+  const registerDiv = document.getElementById('registerDiv');
+  if (registerDiv) registerDiv.classList.add('hidden');
+  if (loginDiv) loginDiv.classList.remove('hidden');
+}
 
 async function register() {
   const btn = document.querySelector('#registerDiv button');
@@ -4072,28 +4077,46 @@ async function register() {
 
     // Teacher Dashboard - realtime
     function loadTeacherDashboard() {
-      const content = document.getElementById('teacherContent');
-      db.collection('results').orderBy('timestamp', 'desc').onSnapshot(async snapshot => {
-        const results = [];
-        for (const doc of snapshot.docs) {
-          const data = doc.data();
-          const studentSnap = await db.collection('students').doc(data.studentId).get();
-          const studentName = studentSnap.exists ? studentSnap.data().name : 'Unknown';
-          results.push({...data, id: doc.id, studentName});
-        }
-        content.innerHTML = results.length === 0 ? '<p class="text-2xl opacity-70">No results yet</p>' :
-          `<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            ${results.map(r => `
-              <div class="glass-dark p-6 rounded-2xl relative">
-                <button onclick="deleteResult('${r.id}')" class="absolute top-4 right-4 text-red-400 text-2xl">×</button>
-                <div class="font-bold text-xl">${r.studentName}</div>
-                <div class="text-sm opacity-80">${r.class} • ${r.timestamp ? new Date(r.timestamp.toDate()).toLocaleString() : ''}</div>
-                ${r.subjects.map(s => `<div class="mt-2"><b>${s}:</b> ${r.correctAnswers[s]}/40 (${r.scores[s]}%)</div>`).join('')}
-                <div class="mt-4 text-center text-3xl font-bold">${r.percentage}% → Grade ${r.grade}</div>
-              </div>`).join('')}
-          </div>`;
-      });
+  const content = document.getElementById('teacherContent');
+  content.innerHTML = '<p class="text-2xl opacity-70">Loading results...</p>';
+
+  const q = db.collection('results').orderBy('timestamp', 'desc');
+  
+  q.onSnapshot(async (snapshot) => {
+    if (snapshot.empty) {
+      content.innerHTML = '<p class="text-2xl opacity-70">No results yet</p>';
+      return;
     }
+
+    const results = [];
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      const studentSnap = await db.collection('students').doc(data.studentId).get();
+      const studentName = studentSnap.exists ? studentSnap.data().name : 'Unknown Student';
+      results.push({ ...data, id: doc.id, studentName });
+    }
+
+    content.innerHTML = `
+      <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        ${results.map(r => `
+          <div class="glass-dark p-6 rounded-2xl relative">
+            <button onclick="deleteResult('${r.id}')" class="absolute top-4 right-4 text-red-400 text-2xl hover:scale-110">×</button>
+            <div class="font-bold text-xl">${r.studentName}</div>
+            <div class="text-sm opacity-80">${r.class} • ${r.school}</div>
+            <div class="text-sm opacity-70 mt-2">
+              ${r.timestamp ? new Date(r.timestamp.toDate()).toLocaleString() : 'Just now'}
+            </div>
+            ${r.subjects.map(s => `
+              <div class="mt-3"><b>${s}:</b> ${r.correctAnswers[s]}/40 (${r.scores[s]}%)</div>
+            `).join('')}
+            <div class="mt-6 text-center text-4xl font-bold">${r.percentage}% → Grade ${r.grade}</div>
+          </div>
+        `).join('')}
+      </div>`;
+  }, (error) => {
+    content.innerHTML = '<p class="text-red-400">Error loading results: ' + error.message + '</p>';
+  });
+}
 
     function deleteResult(id) {
       if (confirm("Delete this result permanently?")) db.collection('results').doc(id).delete();
