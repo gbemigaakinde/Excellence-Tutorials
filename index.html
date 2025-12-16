@@ -3789,14 +3789,6 @@ async function register() {
   const email = document.getElementById('loginEmail').value.trim();
   const pass = document.getElementById('loginPass').value;
 
-  // Teacher hard-coded login
-  if (email === "teacher@excellence.com" && pass === "Master") {
-    user = 'Teacher';
-    render();
-    setButtonLoading(btn, false);
-    return;
-  }
-
   // Student login - compat mode syntax
   try {
     await auth.signInWithEmailAndPassword(email, pass);
