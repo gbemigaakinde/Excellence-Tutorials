@@ -3868,46 +3868,46 @@ function register() {
     }
 
     async function finishExam() {
-      clearInterval(timerInterval);
-      await db.collection('ongoingExams').doc(user).delete();
+  clearInterval(timerInterval);
+  await db.collection('ongoingExams').doc(user).delete();
 
-      const scores = {};
-      const correctAnswers = {};
-      let totalCorrect = 0;
+  const scores = {};
+  const correctAnswers = {};
+  let totalCorrect = 0;
 
-      for (const sub of exam.subjects) {
-        let correct = 0;
-        for (let i = 0; i < 40; i++) {
-          const key = `${sub}-${i}`;
-          if (exam.answers[key] === questions[exam.classKey][sub][i].ans) correct++;
-        }
-        scores[sub] = Math.round(correct / 40 * 100);
-        correctAnswers[sub] = correct;
-        totalCorrect += correct;
-      }
-
-      const percentage = Math.round(totalCorrect / (exam.subjects.length * 40) * 100);
-      const grade = percentage >= 70 ? 'A' : percentage >= 60 ? 'B' : percentage >= 50 ? 'C' : percentage >= 40 ? 'D' : 'F';
-
-      await db.collection('results').add({
-        studentId: user,
-        name: studentData.name,
-        class: studentData.class,
-        school: studentData.school,
-        subjects: exam.subjects,
-        scores,
-        correctAnswers,
-        totalCorrect,
-        totalQuestions: exam.subjects.length * 40,
-        percentage,
-        grade,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      exam = { step: 'result', result: {name: studentData.name, class: studentData.class, subjects: exam.subjects, scores, correctAnswers, percentage, grade} };
-      renderResult();
+  for (const sub of exam.subjects) {
+    let correct = 0;
+    const subjectQuestions = questions[exam.classKey][sub];  // <-- This line fixes the "undefined" error
+    for (let i = 0; i < 40; i++) {
+      const key = `${sub}-${i}`;
+      if (exam.answers[key] === subjectQuestions[i].ans) correct++;
     }
+    scores[sub] = Math.round(correct / 40 * 100);
+    correctAnswers[sub] = correct;
+    totalCorrect += correct;
+  }
 
+  const percentage = Math.round(totalCorrect / (exam.subjects.length * 40) * 100);
+  const grade = percentage >= 70 ? 'A' : percentage >= 60 ? 'B' : percentage >= 50 ? 'C' : percentage >= 40 ? 'D' : 'F';
+
+  await db.collection('results').add({
+    studentId: user,
+    name: studentData.name,
+    class: studentData.class,
+    school: studentData.school,
+    subjects: exam.subjects,
+    scores,
+    correctAnswers,
+    totalCorrect,
+    totalQuestions: exam.subjects.length * 40,
+    percentage,
+    grade,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  exam = { step: 'result', result: {name: studentData.name, class: studentData.class, subjects: exam.subjects, scores, correctAnswers, percentage, grade} };
+  renderResult();
+}
     function renderResult() {
       const r = exam.result;
       document.getElementById('app').innerHTML = `
