@@ -35,6 +35,27 @@
     ::-webkit-scrollbar-track { @apply bg-transparent; }
     ::-webkit-scrollbar-thumb { @apply bg-white/30 rounded-full; }
     ::-webkit-scrollbar-thumb:hover { @apply bg-white/50; }
+
+        select {
+      background-color: rgba(255, 255, 255, 0.15); /* Semi-transparent white to match glass inputs */
+      color: white; /* Text white */
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      appearance: none; /* Optional: removes default arrow for cleaner look */
+      padding-right: 2.5rem; /* Space for custom arrow if you want */
+    }
+
+    select option {
+      background-color: #4c1d95; /* Dark purple to match your gradient/theme */
+      color: white; /* Options text white */
+    }
+
+    /* Optional: Add a custom dropdown arrow */
+    select {
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 20 20'%3e%3cpath d='M10 14l-6-6h12l-6 6z'/%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 1rem center;
+      background-size: 12px;
+    }
   </style>
 </head>
 <body class="text-white">
@@ -3922,25 +3943,56 @@ function register() {
   renderResult();
 }
     function renderResult() {
-      const r = exam.result;
-      document.getElementById('app').innerHTML = `
-        <div class="max-w-6xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
-          <h1 class="text-6xl font-bold mb-4">Exam Complete!</h1>
-          <div class="text-8xl font-bold mb-6">${r.percentage}%</div>
-          <div class="text-5xl font-bold mb-8">Grade: ${r.grade}</div>
-          <p class="text-2xl mb-8">Well done, ${r.name}!</p>
-          <button onclick="shareViaWhatsApp()" class="btn bg-green-600 hover:bg-green-700 text-xl mb-8">Send Result to Teacher (WhatsApp)</button>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-            ${r.subjects.map(s => `
-              <div class="glass-dark p-6 rounded-2xl text-center">
-                <div class="text-lg font-semibold">${s}</div>
-                <div class="text-5xl font-bold my-4">${r.scores[s]}%</div>
-                <div class="text-sm opacity-80">${r.correctAnswers[s]}/40 correct</div>
-              </div>`).join('')}
-          </div>
-          <button onclick="auth.signOut()" class="btn text-2xl px-16">Back to Login</button>
-        </div>`;
-    }
+  const r = exam.result;
+  document.getElementById('app').innerHTML = `
+    <div class="max-w-6xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
+      <h1 class="text-6xl font-bold mb-4">Exam Complete!</h1>
+      <div class="text-8xl font-bold mb-6">${r.percentage}%</div>
+      <div class="text-5xl font-bold mb-8">Grade: ${r.grade}</div>
+      <p class="text-2xl mb-8">Well done, ${r.name}!</p>
+      <button onclick="shareViaWhatsApp()" class="btn bg-green-600 hover:bg-green-700 text-xl mb-8">Send Result to Teacher (WhatsApp)</button>
+
+      <!-- Summary Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+        ${r.subjects.map(s => `
+          <div class="glass-dark p-6 rounded-2xl text-center">
+            <div class="text-lg font-semibold">${s}</div>
+            <div class="text-5xl font-bold my-4">${r.scores[s]}%</div>
+            <div class="text-sm opacity-80">${r.correctAnswers[s]}/40 correct</div>
+          </div>`).join('')}
+      </div>
+
+      <!-- Review Answers Section -->
+      <div class="text-left max-w-4xl mx-auto">
+        <h2 class="text-3xl font-bold mb-6 text-center">Answer Review</h2>
+        ${r.subjects.map((sub, subIndex) => {
+          const subjectQuestions = questions[exam.classKey][sub];
+          return `
+            <div class="mb-10">
+              <h3 class="text-2xl font-bold mb-4">${sub}</h3>
+              ${subjectQuestions.map((q, i) => {
+                const key = `${sub}-${i}`;
+                const userAns = exam.answers[key];
+                const isCorrect = userAns === q.ans;
+                const userOpt = userAns !== undefined ? q.opts[userAns] : "Not answered";
+                const correctOpt = q.opts[q.ans];
+                return `
+                  <div class="glass-dark p-6 rounded-2xl mb-4">
+                    <p class="font-semibold mb-2">Q${i+1}: ${q.q}</p>
+                    <p class="${isCorrect ? 'text-green-400' : 'text-red-400'}">
+                      Your answer: <b>${userOpt}</b>
+                    </p>
+                    ${!isCorrect ? `<p class="text-green-400">Correct answer: <b>${correctOpt}</b></p>` : ''}
+                    <p class="mt-3 text-sm opacity-90"><b>Explanation:</b> ${q.exp}</p>
+                  </div>`;
+              }).join('')}
+            </div>`;
+        }).join('')}
+      </div>
+
+      <button onclick="auth.signOut()" class="btn text-2xl px-16 mt-12">Back to Login</button>
+    </div>`;
+}
 
     function shareViaWhatsApp() {
       let msg = `Hello Sir,\n\nMy exam result:\nName: ${exam.result.name}\nClass: ${exam.result.class}\nOverall: ${exam.result.percentage}% (Grade ${exam.result.grade})\n\n`;
