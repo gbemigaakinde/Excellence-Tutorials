@@ -3929,17 +3929,19 @@ function register() {
   });
 
   exam = { 
-    step: 'result', 
-    result: {
-      name: studentData.name, 
-      class: studentData.class, 
-      subjects: exam.subjects, 
-      scores, 
-      correctAnswers, 
-      percentage, 
-      grade
-    } 
-  };
+  step: 'result', 
+  result: {
+    name: studentData.name, 
+    class: studentData.class, 
+    classKey: exam.classKey,  // <-- Add this line
+    subjects: exam.subjects, 
+    scores, 
+    correctAnswers, 
+    percentage, 
+    grade,
+    answers: exam.answers  // <-- Also save answers for review
+  } 
+};
   renderResult();
 }
     function renderResult() {
@@ -3962,17 +3964,17 @@ function register() {
           </div>`).join('')}
       </div>
 
-      <!-- Review Answers Section -->
+            <!-- Review Answers Section -->
       <div class="text-left max-w-4xl mx-auto">
         <h2 class="text-3xl font-bold mb-6 text-center">Answer Review</h2>
-        ${r.subjects.map((sub, subIndex) => {
-          const subjectQuestions = questions[exam.classKey][sub];
+        ${r.subjects.map((sub) => {
+          const subjectQuestions = questions[r.classKey][sub];
           return `
             <div class="mb-10">
               <h3 class="text-2xl font-bold mb-4">${sub}</h3>
               ${subjectQuestions.map((q, i) => {
                 const key = `${sub}-${i}`;
-                const userAns = exam.answers[key];
+                const userAns = r.answers ? r.answers[key] : undefined;
                 const isCorrect = userAns === q.ans;
                 const userOpt = userAns !== undefined ? q.opts[userAns] : "Not answered";
                 const correctOpt = q.opts[q.ans];
