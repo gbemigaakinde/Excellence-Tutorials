@@ -109,25 +109,32 @@
 
     // ADD THIS ENTIRE BLOCK HERE (critical for student login to work)
     auth.onAuthStateChanged(async (firebaseUser) => {
-      if (firebaseUser) {
-        // A student is logged in
-        user = firebaseUser.uid;
-        const snap = await db.collection('students').doc(user).get();
-        if (snap.exists) {
-          studentData = snap.data();
-          loadOrStartExam();  // This shows subject selection or resumes exam
-        } else {
-          alert("Student profile not found. Please register again.");
-          auth.signOut();
-          render();
-        }
-      } else {
-        // No one logged in
-        user = null;
-        studentData = null;
-        render();  // Show login screen
-      }
-    });
+  if (firebaseUser) {
+    user = firebaseUser.uid;
+
+    // === TEACHER CHECK: Replace with your actual teacher UID ===
+    if (user === 'bV4u2V7aakMF7EyYe1bpCXGj4ny1') {
+      // Teacher login - skip student check
+      render();  // Goes straight to teacher dashboard
+      return;
+    }
+
+    // === NORMAL STUDENT ===
+    const snap = await db.collection('students').doc(user).get();
+    if (snap.exists) {
+      studentData = snap.data();
+      loadOrStartExam();
+    } else {
+      alert("Student profile not found. Please register again.");
+      auth.signOut();
+      render();
+    }
+  } else {
+    user = null;
+    studentData = null;
+    render();  // Show login screen
+  }
+});
 
     // ==== PLACE YOUR FULL QUESTIONS OBJECT HERE ====
     const questions = {
