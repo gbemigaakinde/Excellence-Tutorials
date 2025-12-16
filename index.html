@@ -107,13 +107,15 @@
     let timerInterval = null;
     let studentData = null;
 
+    const TEACHER_UID = 'bV4u2V7aakMF7EyYe1bpCXGj4ny1';
+    
     // ADD THIS ENTIRE BLOCK HERE (critical for student login to work)
     auth.onAuthStateChanged(async (firebaseUser) => {
   if (firebaseUser) {
     user = firebaseUser.uid;
 
     // === TEACHER LOGIN - PUT YOUR REAL TEACHER UID HERE ===
-    if (user === 'bV4u2V7aakMF7EyYe1bpCXGj4ny1') {  // ← Change if this is not your exact UID
+    if (user === TEACHER_UID) {
       render();  // Direct to teacher dashboard (skip student check)
       return;
     }
@@ -3726,11 +3728,11 @@ sss1: {
               <p class="text-sm opacity-80 text-center"><span onclick="showLogin()" class="underline cursor-pointer text-pink-300">Back to Login</span></p>
             </div>
           </div>`;
-      } else if (user === 'bV4u2V7aakMF7EyYe1bpCXGj4ny1') {  // Your exact teacher UID
+      } else if (user === TEACHER_UID) {
   app.innerHTML = `<div class="max-w-6xl mx-auto glass p-8 mt-8 rounded-3xl">
     <div class="flex justify-between items-center mb-8">
       <h1 class="text-4xl font-bold">Teacher Dashboard</h1>
-      <button onclick="auth.signOut(); user=null; render()" class="btn">Logout</button>
+      <button onclick="teacherLogout()" class="btn">Logout</button>
     </div>
     <div id="teacherContent">Loading results...</div>
   </div>`;
@@ -4175,6 +4177,11 @@ function showTab(tab) {
   document.getElementById('tabResults').classList.toggle('bg-purple-600', tab !== 'results');
 }
 
+    async function teacherLogout() {
+  await auth.signOut();
+  user = null;
+  render();
+}
     function deleteResult(id) {
       if (confirm("Delete this result permanently?")) db.collection('results').doc(id).delete();
     }
