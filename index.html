@@ -4129,14 +4129,15 @@ async function register() {
       list.innerHTML = snapshot.docs.map(doc => {
         const s = doc.data();
         const regDate = s.createdAt ? new Date(s.createdAt.toDate()).toLocaleDateString() : '—';
-        return `
-          <div class="glass-dark p-6 rounded-2xl text-center">
-            <div class="font-bold text-xl mb-2">${s.name || 'No Name'}</div>
-            <div class="text-sm opacity-90">Class: ${s.class || '—'}</div>
-            <div class="text-sm opacity-90 mb-3">School: ${s.school || '—'}</div>
-            <div class="text-xs opacity-80 break-all">Email: ${s.email || '—'}</div>
-            <div class="text-xs opacity-70 mt-4">Joined: ${regDate}</div>
-          </div>`;
+ return `
+  <div class="glass-dark p-6 rounded-2xl text-center relative">
+    <button onclick="deleteStudent('${doc.id}')" class="absolute top-4 right-4 text-red-400 text-2xl hover:scale-110 transition">×</button>
+    <div class="font-bold text-xl mb-2">${s.name || 'No Name'}</div>
+    <div class="text-sm opacity-90">Class: ${s.class || '—'}</div>
+    <div class="text-sm opacity-90 mb-3">School: ${s.school || '—'}</div>
+    <div class="text-xs opacity-80 break-all">Email: ${s.email || '—'}</div>
+    <div class="text-xs opacity-70 mt-4">Joined: ${regDate}</div>
+  </div>`;
       }).join('');
     }, (error) => {
       console.error("Students listener error:", error);
@@ -4187,6 +4188,18 @@ function showTab(tab) {
   await auth.signOut();
   user = null;
   render();
+}
+    function deleteStudent(studentId) {
+  if (confirm("Permanently delete this student?\nThis will remove their profile. Exam results must be deleted separately.")) {
+    db.collection('students').doc(studentId).delete()
+      .then(() => {
+        console.log("Student deleted successfully");
+        // No need to refresh — real-time listener will update automatically
+      })
+      .catch((error) => {
+        alert("Error deleting student: " + error.message);
+      });
+  }
 }
     function deleteResult(id) {
       if (confirm("Delete this result permanently?")) db.collection('results').doc(id).delete();
