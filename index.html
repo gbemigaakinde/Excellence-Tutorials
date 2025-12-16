@@ -3736,8 +3736,8 @@ sss1: {
     }
 
 async function register() {
-  const btn = document.querySelector('#registerDiv button'); // Adjust selector if needed
-  setButtonLoading(btn); // Start spinner
+  const btn = document.querySelector('#registerDiv button');
+  setButtonLoading(btn);
 
   const email = document.getElementById('regEmail').value.trim();
   const pass = document.getElementById('regPass').value;
@@ -3752,16 +3752,14 @@ async function register() {
   }
 
   try {
-  const cred = await auth.createUserWithEmailAndPassword(email, pass);
-  await db.collection('students').doc(cred.user.uid).set({
-    name,
-    class: classLevel,
-    school,
-    email,
-    createdAt: new Date()
-  });
-  // ...
-}
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);  // ← compat style
+    await db.collection('students').doc(cred.user.uid).set({
+      name,
+      class: classLevel,
+      school,
+      email,
+      createdAt: new Date()
+    });
 
     alert("Registration successful! You can now login.");
     showLogin();
@@ -3776,7 +3774,7 @@ async function register() {
       alert("Registration failed: " + err.message);
     }
   } finally {
-    setButtonLoading(btn, false); // Always stop spinner
+    setButtonLoading(btn, false);
   }
 }
   async function login() {
