@@ -112,21 +112,27 @@
   if (firebaseUser) {
     user = firebaseUser.uid;
 
-    // === TEACHER CHECK: Replace with your actual teacher UID ===
-    if (user === 'bV4u2V7aakMF7EyYe1bpCXGj4ny1') {
-      // Teacher login - skip student check
-      render();  // Goes straight to teacher dashboard
+    // === TEACHER LOGIN - PUT YOUR REAL TEACHER UID HERE ===
+    if (user === 'bV4u2V7aakMF7EyYe1bpCXGj4ny1') {  // ← Change if this is not your exact UID
+      render();  // Direct to teacher dashboard (skip student check)
       return;
     }
 
-    // === NORMAL STUDENT ===
-    const snap = await db.collection('students').doc(user).get();
-    if (snap.exists) {
-      studentData = snap.data();
-      loadOrStartExam();
-    } else {
-      alert("Student profile not found. Please register again.");
-      auth.signOut();
+    // === NORMAL STUDENT LOGIN ===
+    try {
+      const snap = await db.collection('students').doc(user).get();
+      if (snap.exists) {
+        studentData = snap.data();
+        loadOrStartExam();
+      } else {
+        alert("Student profile not found. Please register again.");
+        await auth.signOut();
+        render();
+      }
+    } catch (err) {
+      console.error("Error reading student doc:", err);
+      alert("Access error. If you are the teacher, contact support.");
+      await auth.signOut();
       render();
     }
   } else {
