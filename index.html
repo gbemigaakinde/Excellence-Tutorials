@@ -3752,14 +3752,16 @@ async function register() {
   }
 
   try {
-    const cred = await createUserWithEmailAndPassword(auth, email, pass);
-    await setDoc(doc(db, 'students', cred.user.uid), {
-      name,
-      class: classLevel,
-      school,
-      email,
-      createdAt: new Date()
-    });
+  const cred = await auth.createUserWithEmailAndPassword(email, pass);
+  await db.collection('students').doc(cred.user.uid).set({
+    name,
+    class: classLevel,
+    school,
+    email,
+    createdAt: new Date()
+  });
+  // ...
+}
 
     alert("Registration successful! You can now login.");
     showLogin();
@@ -3778,25 +3780,24 @@ async function register() {
   }
 }
   async function login() {
-  const btn = document.querySelector('#loginDiv button'); // Adjust if your button has different selector
-  setButtonLoading(btn); // Start spinner
+  const btn = document.querySelector('#loginDiv button');
+  setButtonLoading(btn);
 
   const email = document.getElementById('loginEmail').value.trim();
   const pass = document.getElementById('loginPass').value;
 
-  // Teacher hard-coded login (instant, no Firebase delay)
+  // Teacher hard-coded login
   if (email === "teacher@excellence.com" && pass === "Master") {
     user = 'Teacher';
-    render(); // or whatever function you use for teacher dashboard
-    setButtonLoading(btn, false); // Stop spinner immediately
+    render();
+    setButtonLoading(btn, false);
     return;
   }
 
-  // Student login with Firebase
+  // Student login - compat mode syntax
   try {
-    await signInWithEmailAndPassword(auth, email, pass);
-    // Success: onAuthStateChanged listener will handle the rest
-    // No need to stop spinner here — page will change quickly via listener
+    await auth.signInWithEmailAndPassword(email, pass);
+    // Success handled by onAuthStateChanged
   } catch (err) {
     if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
       alert("Incorrect email or password. Please try again.");
@@ -3807,7 +3808,7 @@ async function register() {
     } else {
       alert("Login failed: " + err.message);
     }
-    setButtonLoading(btn, false); // Stop spinner on error
+    setButtonLoading(btn, false);
   }
 }
     // RESUME FEATURE + EXAM FLOW
