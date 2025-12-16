@@ -4117,32 +4117,31 @@ async function register() {
   // Default: show Students tab
   showTab('students');
 
-  // Load Registered Students
-  db.collection('students').orderBy('createdAt', 'desc')
-  .onSnapshot((snapshot) => {
-    const list = document.getElementById('studentList');
-    if (snapshot.empty) {
-      list.innerHTML = '<p class="text-center opacity-70 col-span-full text-2xl">No students registered yet</p>';
-      return;
-    }
+    // Load Registered Students
+  db.collection('students')
+    .onSnapshot((snapshot) => {
+      const list = document.getElementById('studentList');
+      if (snapshot.empty) {
+        list.innerHTML = '<p class="text-center opacity-70 col-span-full text-2xl">No students registered yet</p>';
+        return;
+      }
 
-    list.innerHTML = snapshot.docs.map(doc => {
-      const s = doc.data();
-      const regDate = s.createdAt ? new Date(s.createdAt.toDate()).toLocaleDateString() : '—';
-      return `
-        <div class="glass-dark p-6 rounded-2xl text-center">
-          <div class="font-bold text-xl mb-2">${s.name || 'No Name'}</div>
-          <div class="text-sm opacity-90">Class: ${s.class || '—'}</div>
-          <div class="text-sm opacity-90 mb-3">School: ${s.school || '—'}</div>
-          <div class="text-xs opacity-80 break-all">Email: ${s.email || '—'}</div>
-          <div class="text-xs opacity-70 mt-4">Joined: ${regDate}</div>
-        </div>`;
-    }).join('');
-  }, (error) => {
-    console.error("Students listener error:", error);
-    // Optional: show a message or auto-refresh
-    document.getElementById('studentList').innerHTML = '<p class="text-center text-red-400">Connection issue. Refresh the page.</p>';
-  });
+      list.innerHTML = snapshot.docs.map(doc => {
+        const s = doc.data();
+        const regDate = s.createdAt ? new Date(s.createdAt.toDate()).toLocaleDateString() : '—';
+        return `
+          <div class="glass-dark p-6 rounded-2xl text-center">
+            <div class="font-bold text-xl mb-2">${s.name || 'No Name'}</div>
+            <div class="text-sm opacity-90">Class: ${s.class || '—'}</div>
+            <div class="text-sm opacity-90 mb-3">School: ${s.school || '—'}</div>
+            <div class="text-xs opacity-80 break-all">Email: ${s.email || '—'}</div>
+            <div class="text-xs opacity-70 mt-4">Joined: ${regDate}</div>
+          </div>`;
+      }).join('');
+    }, (error) => {
+      console.error("Students listener error:", error);
+      document.getElementById('studentList').innerHTML = '<p class="text-center text-red-400">Connection issue. Refresh the page.</p>';
+    });
 
   // Load Exam Results
   db.collection('results').orderBy('timestamp', 'desc')
