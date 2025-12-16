@@ -56,6 +56,31 @@
       background-position: right 1rem center;
       background-size: 12px;
     }
+        .btn-loading {
+      opacity: 0.8;
+      cursor: not-allowed;
+      position: relative;
+      padding-right: 3.5rem; /* Extra space for spinner */
+    }
+
+    .btn-loading::after {
+      content: "";
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      top: 50%;
+      right: 1.5rem;
+      margin-top: -10px;
+      border: 3px solid transparent;
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body class="text-white">
@@ -3642,6 +3667,16 @@ sss1: {
       }
     });
 
+        function setButtonLoading(btn, loading = true) {
+      if (loading) {
+        btn.disabled = true;
+        btn.classList.add('btn-loading');
+      } else {
+        btn.disabled = false;
+        btn.classList.remove('btn-loading');
+      }
+    }
+    
     function render() {
       const app = document.getElementById('app');
 
@@ -3700,7 +3735,10 @@ sss1: {
       document.getElementById('loginDiv').classList.remove('hidden');
     }
 
-function register() {
+async function register() {
+  const btn = document.querySelector('#registerDiv button'); // Adjust selector if needed
+  setButtonLoading(btn); // Start spinner
+
   const email = document.getElementById('regEmail').value.trim();
   const pass = document.getElementById('regPass').value;
   const name = document.getElementById('regName').value.trim();
@@ -3709,59 +3747,68 @@ function register() {
 
   if (!email || pass.length < 6 || !name || !classLevel || !school) {
     alert("Please fill all fields correctly. Password must be at least 6 characters.");
+    setButtonLoading(btn, false);
     return;
   }
 
-  auth.createUserWithEmailAndPassword(email, pass)
-    .then(cred => {
-      return db.collection('students').doc(cred.user.uid).set({
-        name, class: classLevel, school, email, createdAt: new Date()
-      });
-    })
-    .then(() => {
-      alert("Registration successful! You can now login.");
-      showLogin();
-    })
-    .catch(err => {
-      if (err.code === 'auth/email-already-in-use') {
-        alert("This email is already registered. Please login instead.");
-      } else if (err.code === 'auth/invalid-email') {
-        alert("Invalid email format.");
-      } else if (err.code === 'auth/weak-password') {
-        alert("Password too weak (minimum 6 characters).");
-      } else {
-        alert("Registration failed: " + err.message);
-      }
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+    await setDoc(doc(db, 'students', cred.user.uid), {
+      name,
+      class: classLevel,
+      school,
+      email,
+      createdAt: new Date()
     });
+
+    alert("Registration successful! You can now login.");
+    showLogin();
+  } catch (err) {
+    if (err.code === 'auth/email-already-in-use') {
+      alert("This email is already registered. Please login instead.");
+    } else if (err.code === 'auth/invalid-email') {
+      alert("Invalid email format.");
+    } else if (err.code === 'auth/weak-password') {
+      alert("Password too weak (minimum 6 characters).");
+    } else {
+      alert("Registration failed: " + err.message);
+    }
+  } finally {
+    setButtonLoading(btn, false); // Always stop spinner
+  }
 }
-  function login() {
+  async function login() {
+  const btn = document.querySelector('#loginDiv button'); // Adjust if your button has different selector
+  setButtonLoading(btn); // Start spinner
+
   const email = document.getElementById('loginEmail').value.trim();
   const pass = document.getElementById('loginPass').value;
 
-  // Teacher hard-coded login (keeps working as before)
+  // Teacher hard-coded login (instant, no Firebase delay)
   if (email === "teacher@excellence.com" && pass === "Master") {
     user = 'Teacher';
-    render();
+    render(); // or whatever function you use for teacher dashboard
+    setButtonLoading(btn, false); // Stop spinner immediately
     return;
   }
 
   // Student login with Firebase
-  auth.signInWithEmailAndPassword(email, pass)
-    .then(() => {
-      // Success: the onAuthStateChanged listener will detect the login
-      // and automatically call loadOrStartExam() / render the student screen
-    })
-    .catch(err => {
-      if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
-        alert("Incorrect email or password. Please try again.");
-      } else if (err.code === 'auth/invalid-email') {
-        alert("Please enter a valid email address.");
-      } else if (err.code === 'auth/too-many-requests') {
-        alert("Too many failed attempts. Please try again later.");
-      } else {
-        alert("Login failed: " + err.message);
-      }
-    });
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+    // Success: onAuthStateChanged listener will handle the rest
+    // No need to stop spinner here — page will change quickly via listener
+  } catch (err) {
+    if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+      alert("Incorrect email or password. Please try again.");
+    } else if (err.code === 'auth/invalid-email') {
+      alert("Please enter a valid email address.");
+    } else if (err.code === 'auth/too-many-requests') {
+      alert("Too many failed attempts. Please try again later.");
+    } else {
+      alert("Login failed: " + err.message);
+    }
+    setButtonLoading(btn, false); // Stop spinner on error
+  }
 }
     // RESUME FEATURE + EXAM FLOW
     async function loadOrStartExam() {
@@ -3802,22 +3849,32 @@ function register() {
       document.getElementById('startBtn').disabled = exam.chosen.length < 2;
     }
 
-    async function startExam() {
-      const classKey = studentData.class.toLowerCase().replace(/ /g, '');
-      exam = {
-        step: 'exam',
-        subjects: [...exam.chosen],
-        current: 0,
-        questionIndex: 0,
-        answers: {},
-        startTime: Date.now(),
-        timeLeft: exam.chosen.length * 40 * 60, // seconds
-        classKey
-      };
-      await db.collection('ongoingExams').doc(user).set(exam);
-      startTimer();
-      renderExam();
-    }
+  async function startExam() {
+  const btn = document.getElementById('startBtn'); // Your Start Exam button ID
+  setButtonLoading(btn); // Start spinner
+
+  const classKey = studentData.class.toLowerCase().replace(/ /g, '');
+  exam = {
+    step: 'exam',
+    subjects: [...exam.chosen],
+    current: 0,
+    questionIndex: 0,
+    answers: {},
+    startTime: Date.now(),
+    timeLeft: exam.chosen.length * 40 * 60, // seconds
+    classKey
+  };
+
+  try {
+    await db.collection('ongoingExams').doc(user).set(exam);
+    startTimer();
+    renderExam();
+    // No need to stop spinner here — page changes immediately to exam
+  } catch (err) {
+    alert("Error starting exam: " + err.message);
+    setButtonLoading(btn, false); // Stop spinner only on error
+  }
+}
 
     function renderExam() {
       const s = exam.subjects[exam.current];
@@ -3884,9 +3941,20 @@ function register() {
       if (exam.timeLeft <= 300) timerEl.classList.add('low');
     }
 
-    function confirmSubmit() {
-      if (confirm("Submit exam now?")) finishExam();
+    async function confirmSubmit() {
+  if (confirm("Submit exam now?")) {
+    const btn = document.querySelector('button.bg-orange-600'); // Adjust selector if needed
+    setButtonLoading(btn); // Start spinner
+
+    try {
+      await finishExam(); // This saves results and changes to result page
+      // No need to stop spinner — page changes immediately
+    } catch (err) {
+      alert("Error submitting exam: " + err.message);
+      setButtonLoading(btn, false); // Stop spinner only on error (rare)
     }
+  }
+}
 
     async function finishExam() {
   clearInterval(timerInterval);
