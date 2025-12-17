@@ -105,6 +105,27 @@
     let timerInterval = null;
     let studentData = null;
 
+        // Global back function for chat
+    window.goBackFromChat = function() {
+      // Clean up typing indicator
+      if (user) {
+        db.collection('typing').doc(user).delete().catch(() => {});
+      }
+
+      // Decide where to go back to
+      if (document.getElementById('teacherChatContainer')) {
+        // Teacher view
+        showTab('students');
+      } else {
+        // Student view
+        if (exam && exam.step === 'exam') {
+          renderExam();  // go back to ongoing exam if in middle
+        } else {
+          startSubjectSelection();
+        }
+      }
+    };
+
     const TEACHER_UID = 'bV4u2V7aakMF7EyYe1bpCXGj4ny1';
     // ==== PLACE YOUR FULL QUESTIONS OBJECT HERE ====
     const questions = {
@@ -3822,6 +3843,186 @@ auth.onAuthStateChanged(async (firebaseUser) => {
   exam = { step: 'subjects', chosen: [] };
 }
 
+        async function startExam() {
+      if (exam.chosen.length < 2) {
+        alert("Please select at least 2 subjects.");
+        return;
+      }
+
+      // Shuffle and pick 40 questions per subject
+      const selectedQuestions = {};
+      let totalQuestions = 0;
+
+      exam.chosen.forEach(subject => {
+        const all = questions[studentData.class.toLowerCase().replace(/ /g, '')][subject];
+        const shuffled = [...all].sort(() => 0.5 - Math.random());
+        selectedQuestions[subject] = shuffled.slice(0, 40);
+        totalQuestions += 40;
+      });
+
+      exam = {
+        step: 'exam',
+        subjects: exam.chosen,
+        questions: selectedQuestions,
+        currentSubject: exam.chosen[0],
+        currentIndex: 0,
+        answers: {},
+        startTime: new Date(),
+        duration: 120 * 60 * 1000  // 2 hours in ms
+      };
+
+      // Save to ongoingExams so it resumes if page reloads
+      await db.collection('ongoingExams').doc(user).set(exam);
+
+      startTimer();
+      renderExam();
+    }
+
+        function renderExam() {
+      const subj = exam.currentSubject;
+      const qList = exam.questions[subj];
+      const q = qList[exam.currentIndex];
+      const progress = ((exam.currentIndex + 1) / qList.length * 100).toFixed(1);
+
+      document.getElementById('app').innerHTML = `
+        <div class="max-w-5xl mx-auto glass p-8 mt-8 rounded-3xl">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-bold">${subj} Exam</h2>
+            <div class="text-right">
+              <div id="timer" class="text-4xl font-bold text-red-400">02:00:00</div>
+              <div class="text-sm opacity-80">Question ${exam.currentIndex + 1} of ${qList.length} (${progress}%)</div>
+            </div>
+          </div>
+
+          <div class="glass-dark p-8 rounded-2xl mb-8">
+            <p class="text-xl mb-6">${q.q}</p>
+            <div class="space-y-4">
+              ${q.opts.map((opt, i) => `
+                <label class="block glass p-4 rounded-xl cursor-pointer hover:scale-105 transition">
+                  <input type="radio" name="ans" value="${i}" ${exam.answers[`${subj}-${exam.currentIndex}`] === i ? 'checked' : ''}>
+                  <span class="ml-4 text-lg">${opt}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="flex justify-between">
+            <button onclick="prevQuestion()" ${exam.currentIndex === 0 ? 'disabled' : ''} class="btn bg-gray-600 hover:bg-gray-700">Previous</button>
+            <button onclick="nextQuestion()" class="btn">Next</button>
+            <button onclick="submitExam()" class="btn bg-red-600 hover:bg-red-700">Submit Exam</button>
+          </div>
+
+          <div class="mt-8 text-center">
+            <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700">Open Chat</button>
+          </div>
+        </div>`;
+      
+      // Auto-save answer when selected
+      document.querySelectorAll('input[name="ans"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+          exam.answers[`${subj}-${exam.currentIndex}`] = parseInt(radio.value);
+          db.collection('ongoingExams').doc(user).update({ answers: exam.answers });
+        });
+      });
+    }
+
+    function startTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+
+      timerInterval = setInterval(() => {
+        const elapsed = new Date() - new Date(exam.startTime);
+        const remaining = exam.duration - elapsed;
+
+        if (remaining <= 0) {
+          clearInterval(timerInterval);
+          alert("Time's up! Exam submitted automatically.");
+          submitExam();
+          return;
+        }
+
+        const hours = Math.floor(remaining / 3600000).toString().padStart(2, '0');
+        const mins = Math.floor((remaining % 3600000) / 60000).toString().padStart(2, '0');
+        const secs = Math.floor((remaining % 60000) / 1000).toString().padStart(2, '0');
+
+        const timerEl = document.getElementById('timer');
+        if (timerEl) {
+          timerEl.textContent = `${hours}:${mins}:${secs}`;
+          if (remaining < 600000) timerEl.classList.add('animate-pulse');
+        }
+      }, 1000);
+    }
+
+    function prevQuestion() {
+      if (exam.currentIndex > 0) {
+        exam.currentIndex--;
+        renderExam();
+      }
+    }
+
+    function nextQuestion() {
+      const qList = exam.questions[exam.currentSubject];
+      if (exam.currentIndex < qList.length - 1) {
+        exam.currentIndex++;
+        renderExam();
+      } else if (exam.subjects.indexOf(exam.currentSubject) < exam.subjects.length - 1) {
+        // Move to next subject
+        exam.currentSubject = exam.subjects[exam.subjects.indexOf(exam.currentSubject) + 1];
+        exam.currentIndex = 0;
+        renderExam();
+      }
+    }
+
+    async function submitExam() {
+      if (!confirm("Submit exam now? You cannot change answers after submission.")) return;
+
+      clearInterval(timerInterval);
+
+      const results = {
+        name: studentData.name,
+        class: studentData.class,
+        school: studentData.school,
+        subjects: exam.subjects,
+        correctAnswers: {},
+        scores: {},
+        percentage: 0,
+        grade: '',
+        timestamp: new Date()
+      };
+
+      let totalCorrect = 0;
+      let totalQuestions = 0;
+
+      exam.subjects.forEach(subj => {
+        const qList = exam.questions[subj];
+        let correct = 0;
+        qList.forEach((q, i) => {
+          if (exam.answers[`${subj}-${i}`] == q.ans) correct++;
+        });
+        results.correctAnswers[subj] = correct;
+        results.scores[subj] = Math.round((correct / qList.length) * 100);
+        totalCorrect += correct;
+        totalQuestions += qList.length;
+      });
+
+      results.percentage = Math.round((totalCorrect / totalQuestions) * 100);
+
+      // Simple grading
+      if (results.percentage >= 90) results.grade = 'A';
+      else if (results.percentage >= 80) results.grade = 'B';
+      else if (results.percentage >= 70) results.grade = 'C';
+      else if (results.percentage >= 60) results.grade = 'D';
+      else results.grade = 'F';
+
+      // Save result
+      await db.collection('results').add(results);
+
+      // Clean up ongoing exam
+      await db.collection('ongoingExams').doc(user).delete();
+
+      alert(`Exam submitted! Overall: ${results.percentage}% - Grade ${results.grade}`);
+      startSubjectSelection();
+    }
+    
 function toggleSubject(cb) {
   if (cb.checked) {
     exam.chosen.push(cb.value);
@@ -3831,7 +4032,7 @@ function toggleSubject(cb) {
   const startBtn = document.getElementById('startBtn');
   if (startBtn) startBtn.disabled = exam.chosen.length < 2;
 }
-    async function openPublicChat() {
+        async function openPublicChat() {
       const isTeacherView = !!document.getElementById('teacherChatContainer');
       const container = isTeacherView ? document.getElementById('teacherChatContainer') : document.getElementById('app');
 
@@ -3885,59 +4086,106 @@ function toggleSubject(cb) {
             <p class="text-center opacity-70">Loading messages...</p>
           </div>
 
-          <div id="typingIndicator" class="text-sm opacity-70 italic text-center py-1 hidden"></div>
+          <div id="typingIndicator" class="text-sm opacity-70 italic text-center py-1 hidden mb-4"></div>
 
           <div class="flex gap-4 ${isLocked && !isMainTeacher ? 'opacity-50' : ''}">
             <input id="chatInput" type="text" placeholder="${isLocked && !isMainTeacher ? 'Chat is locked' : 'Type your message...'}" 
                    class="flex-1 p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" 
-                   ${isLocked && !isMainTeacher ? 'disabled' : ''} onkeydown="if(event.key==='Enter') sendMessage()">
+                   ${isLocked && !isMainTeacher ? 'disabled' : ''} autocomplete="off">
             <button onclick="sendMessage()" class="btn bg-green-600 hover:bg-green-700" 
                     ${isLocked && !isMainTeacher ? 'disabled' : ''}>Send</button>
           </div>
         </div>`;
 
+      // === FULLY FUNCTIONAL TYPING INDICATOR ===
       const typingRef = db.collection('typing');
       const currentUserTypingRef = typingRef.doc(user);
       const chatInput = container.querySelector('#chatInput');
       const typingIndicator = container.querySelector('#typingIndicator');
-      let typingTimeout;
+      let typingTimeout = null;
 
+      // Send typing status
       chatInput.addEventListener('input', () => {
-        if (chatInput.value.trim()) {
+        const hasText = chatInput.value.trim().length > 0;
+
+        if (hasText) {
           currentUserTypingRef.set({
             typing: true,
-            name: isMainTeacher ? "Master Timothy" : studentData?.name || "Student",
+            name: isMainTeacher ? "Master Timothy" : (studentData?.name || "Student"),
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
-          });
+          }, { merge: true });
         }
-        clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => currentUserTypingRef.delete(), 2000);
+
+        if (typingTimeout) clearTimeout(typingTimeout);
+
+        typingTimeout = setTimeout(() => {
+          currentUserTypingRef.delete().catch(() => {});
+        }, 2000);
       });
 
-      typingRef.onSnapshot((snapshot) => {
+      // Listen for others typing
+      const unsubscribeTyping = typingRef.onSnapshot((snapshot) => {
         const typingUsers = [];
+
         snapshot.forEach((doc) => {
-          if (doc.id !== user && doc.data().name) typingUsers.push(doc.data().name);
+          const data = doc.data();
+          if (doc.id !== user && data.typing === true && data.name) {
+            typingUsers.push(data.name);
+          }
         });
+
         if (typingUsers.length > 0) {
-          typingIndicator.textContent = typingUsers.length === 1 
-            ? `${typingUsers[0]} is typing...` 
-            : typingUsers.length <= 3 
-              ? typingUsers.join(', ') + ' are typing...' 
-              : 'Several people are typing...';
+          let text = '';
+          if (typingUsers.length === 1) {
+            text = `${typingUsers[0]} is typing...`;
+          } else if (typingUsers.length === 2) {
+            text = `${typingUsers[0]} and ${typingUsers[1]} are typing...`;
+          } else if (typingUsers.length === 3) {
+            text = `${typingUsers[0]}, ${typingUsers[1]}, and ${typingUsers[2]} are typing...`;
+          } else {
+            text = 'Several people are typing...';
+          }
+          typingIndicator.textContent = text;
           typingIndicator.classList.remove('hidden');
         } else {
           typingIndicator.classList.add('hidden');
+          typingIndicator.textContent = '';
         }
       });
 
-      loadChatMessages(isAdmin);
-
-      goBackFromChat = function() {
-        currentUserTypingRef.delete();
-        if (isTeacherView) showTab('students');
-        else startSubjectSelection();
+      // Cleanup function
+      const cleanupTyping = () => {
+        if (typingTimeout) clearTimeout(typingTimeout);
+        currentUserTypingRef.delete().catch(() => {});
+        unsubscribeTyping();
       };
+
+      // Override goBackFromChat to clean up typing
+      window.goBackFromChat = function() {
+        cleanupTyping();
+        if (document.getElementById('teacherChatContainer')) {
+          showTab('students');
+        } else {
+          if (exam && exam.step === 'exam') {
+            renderExam();
+          } else {
+            startSubjectSelection();
+          }
+        }
+      };
+
+      // Also clean up if page is closed
+      window.addEventListener('beforeunload', cleanupTyping);
+      // === END OF TYPING INDICATOR ===
+
+      loadChatMessages(isAdmin || isMainTeacher);  // Show admin controls for teacher/admins
+
+      // Allow sending with Enter key
+      chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !isLocked) {
+          sendMessage();
+        }
+      });
     }
 
     function goBackFromChat() {
@@ -3948,13 +4196,17 @@ function toggleSubject(cb) {
       }
     }
 
-    function loadChatMessages(isAdmin) {
+        function loadChatMessages(isAdminOverride = false) {
       const isMainTeacher = user === TEACHER_UID;
+      const showAdminControls = isMainTeacher || isAdminOverride;
+
       db.collection('publicChat')
         .orderBy('pinned', 'desc')
         .orderBy('timestamp', 'asc')
         .onSnapshot((snapshot) => {
-          const messagesDiv = document.getElementById('chatMessages');
+          const messagesDiv = document.getElementById('chatMessages') || document.querySelector('#teacherChatContainer #chatMessages');
+          if (!messagesDiv) return;
+
           if (snapshot.empty) {
             messagesDiv.innerHTML = '<p class="text-center opacity-70">No messages yet. Start the discussion!</p>';
             return;
@@ -3963,19 +4215,22 @@ function toggleSubject(cb) {
           messagesDiv.innerHTML = snapshot.docs.map(doc => {
             const m = doc.data();
             const messageId = doc.id;
-            let senderLine = `<div class="font-bold text-purple-300">${m.senderName}`;
+
+            let senderLine = `<div class="font-bold text-purple-300">${m.senderName || 'Unknown'}`;
             if (m.senderClass) senderLine += ` <span class="text-xs opacity-70">(${m.senderClass})</span>`;
-            if (m.senderName === "Master Timothy") senderLine += ` <span class="text-xs opacity-70 ml-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-2 py-1 rounded-full font-bold">★ Master ★</span>`;
+            if (m.senderName === "Master Timothy") {
+              senderLine += ` <span class="text-xs opacity-70 ml-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-2 py-1 rounded-full font-bold">★ Master ★</span>`;
+            }
             senderLine += `</div>`;
 
             const pinnedLabel = m.pinned ? '<div class="text-yellow-400 text-xs font-bold mb-2 tracking-wider">📌 PINNED ANNOUNCEMENT</div>' : '';
 
             return `
               <div class="glass-dark p-4 rounded-xl text-left relative ${m.senderName === 'Master Timothy' ? 'bg-gradient-to-br from-yellow-900/30 to-orange-900/30 border border-yellow-600 shadow-lg' : ''}">
-                ${isMainTeacher && m.senderName === "Master Timothy" ? `
+                ${isMainTeacher ? `
                   <button onclick="pinMessage('${messageId}')" class="absolute top-3 left-3 text-yellow-300 text-2xl hover:scale-125 transition">📌</button>
                 ` : ''}
-                ${isAdmin ? `
+                ${showAdminControls ? `
                   <button onclick="deleteMessage('${messageId}')" class="absolute top-3 right-3 text-red-400 text-2xl hover:scale-125 transition">×</button>
                 ` : ''}
                 ${pinnedLabel}
@@ -3984,6 +4239,7 @@ function toggleSubject(cb) {
                 <p class="text-xs opacity-60 mt-3">${m.timestamp ? new Date(m.timestamp.toDate()).toLocaleString() : 'Just now'}</p>
               </div>`;
           }).join('');
+
           messagesDiv.scrollTop = messagesDiv.scrollHeight;
         });
     }
@@ -4017,12 +4273,13 @@ function toggleSubject(cb) {
       }
     }
 
-    async function pinMessage(id) {
+        async function pinMessage(id) {
       if (user !== TEACHER_UID) return;
       const ref = db.collection('publicChat').doc(id);
       const snap = await ref.get();
       if (snap.exists && snap.data().senderName === "Master Timothy") {
-        await ref.update({ pinned: !snap.data().pinned });
+        const currentlyPinned = snap.data().pinned === true;
+        await ref.update({ pinned: !currentlyPinned });
       }
     }
 
