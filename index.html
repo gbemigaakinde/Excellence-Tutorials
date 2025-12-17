@@ -3834,25 +3834,35 @@ async function register() {
     }
 
     async function startSubjectSelection() {
-      const classKey = studentData.class.toLowerCase().replace(/ /g, '');
-      const available = questions[classKey] ? Object.keys(questions[classKey]) : [];
+  const classKey = studentData.class.toLowerCase().replace(/ /g, '');
+  const available = questions[classKey] ? Object.keys(questions[classKey]) : [];
 
-      document.getElementById('app').innerHTML = `
-        <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
-          <h1 class="text-4xl font-bold mb-8">Welcome, ${studentData.name}!</h1>
-          <p>Class: ${studentData.class} • School: ${studentData.school}</p>
-          <p class="text-xl mb-8">Select at least 2 subjects</p>
-          ${available.length === 0 ? '<p class="text-red-400">No subjects for your class</p>' : 
-            `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              ${available.map(s => `<label class="glass p-6 rounded-xl cursor-pointer hover:scale-105 transition">
+  document.getElementById('app').innerHTML = `
+    <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
+      <h1 class="text-4xl font-bold mb-8">Welcome, ${studentData.name}!</h1>
+      <p>Class: ${studentData.class} • School: ${studentData.school}</p>
+
+      <!-- Public Discussion Chat Button -->
+      <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700 text-xl px-12 py-4 my-8">
+        Public Discussion Chat
+      </button>
+
+      <p class="text-xl mb-8">Select at least 2 subjects for exam</p>
+      ${available.length === 0 
+        ? '<p class="text-red-400 text-2xl">No subjects available for your class</p>' 
+        : `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            ${available.map(s => `
+              <label class="glass p-6 rounded-xl cursor-pointer hover:scale-105 transition">
                 <input type="checkbox" value="${s}" onchange="toggleSubject(this)"> ${s}
               </label>`).join('')}
-            </div>`}
-          <button onclick="startExam()" id="startBtn" disabled class="btn text-xl px-12">Start Exam</button>
-          <button onclick="auth.signOut()" class="mt-6 text-sm opacity-70">Logout</button>
-        </div>`;
-      exam = { step: 'subjects', chosen: [] };
-    }
+          </div>`
+      }
+      <button onclick="startExam()" id="startBtn" disabled class="btn text-xl px-12 mt-4">Start Exam</button>
+      <button onclick="auth.signOut()" class="mt-8 block mx-auto text-sm opacity-70">Logout</button>
+    </div>`;
+
+  exam = { step: 'subjects', chosen: [] };
+}
 
     function toggleSubject(cb) {
       if (cb.checked) exam.chosen.push(cb.value);
@@ -4082,6 +4092,140 @@ async function register() {
       window.open(`https://wa.me/2348155095660?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
+    async function openPublicChat() {
+  const isMainTeacher = user === TEACHER_UID;
+  const isAdminSnap = await db.collection('admins').doc(user).get();
+  const isAdmin = isMainTeacher || isAdminSnap.exists;
+
+  // Get current lock state
+  const lockRef = db.collection('chatSettings').doc('lock');
+  const lockSnap = await lockRef.get();
+  const isLocked = lockSnap.exists && lockSnap.data()?.isLocked === true;
+
+  document.getElementById('app').innerHTML = `
+    <div class="max-w-4xl mx-auto glass p-8 mt-8 rounded-3xl">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-3xl font-bold">Public Discussion Chat</h2>
+        <button onclick="startSubjectSelection()" class="btn bg-gray-600 hover:bg-gray-700">Back</button>
+      </div>
+
+      <!-- Lock Status -->
+      ${isLocked ? `
+        <div class="glass-dark p-4 rounded-xl mb-6 text-center bg-red-900/50 border border-red-500">
+          <p class="text-xl font-bold text-red-300">🔒 Chat is currently LOCKED</p>
+          <p class="text-sm opacity-90">No new messages can be sent until the teacher unlocks it.</p>
+        </div>
+      ` : `
+        <div class="glass-dark p-4 rounded-xl mb-6 text-center bg-green-900/30 border border-green-500">
+          <p class="text-xl font-bold text-green-300">🔓 Chat is OPEN</p>
+        </div>
+      `}
+
+      <!-- Teacher Lock/Unlock Button -->
+      ${isMainTeacher ? `
+        <div class="text-center mb-6">
+          <button onclick="toggleChatLock()" class="btn ${isLocked ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'} text-xl px-8">
+            ${isLocked ? '🔓 Unlock Chat' : '🔒 Lock Chat'}
+          </button>
+        </div>
+      ` : ''}
+
+      <!-- Rules -->
+      <div class="glass-dark p-4 rounded-xl mb-6 text-left text-sm">
+        <p class="font-bold mb-2">Chat Rules:</p>
+        <ul class="list-disc pl-6 space-y-1 opacity-90">
+          <li>Be respectful and kind to everyone.</li>
+          <li>Share only academic-related content (questions, solutions, notes).</li>
+          <li>No bullying, insults, or off-topic messages.</li>
+          <li>No sharing of personal information.</li>
+          <li>Admins can delete messages that break rules.</li>
+        </ul>
+      </div>
+
+      <div id="chatMessages" class="glass-dark p-6 rounded-2xl mb-6 max-h-96 overflow-y-auto space-y-4">
+        <p class="text-center opacity-70">Loading messages...</p>
+      </div>
+
+      <!-- Send Area -->
+      <div class="flex gap-4 ${isLocked && !isMainTeacher ? 'opacity-50' : ''}">
+        <input id="chatInput" type="text" placeholder="${isLocked ? 'Chat is locked' : 'Type your message...'}" 
+               class="flex-1 p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" 
+               ${isLocked && !isMainTeacher ? 'disabled' : ''}>
+        <button onclick="sendMessage()" class="btn bg-green-600 hover:bg-green-700" 
+                ${isLocked && !isMainTeacher ? 'disabled' : ''}>Send</button>
+      </div>
+    </div>`;
+
+  loadChatMessages(isAdmin);
+}
+
+function loadChatMessages(isAdmin) {
+  db.collection('publicChat')
+    .orderBy('timestamp', 'asc')
+    .onSnapshot((snapshot) => {
+      const messagesDiv = document.getElementById('chatMessages');
+      if (snapshot.empty) {
+        messagesDiv.innerHTML = '<p class="text-center opacity-70">No messages yet. Start the discussion!</p>';
+        return;
+      }
+
+      messagesDiv.innerHTML = snapshot.docs.map(doc => {
+        const m = doc.data();
+        return `
+          <div class="glass-dark p-4 rounded-xl text-left relative">
+            ${isAdmin ? `
+              <button onclick="deleteMessage('${doc.id}')" class="absolute top-2 right-2 text-red-400 text-xl hover:scale-110">×</button>
+            ` : ''}
+            <div class="font-bold text-purple-300">${m.senderName} <span class="text-xs opacity-70">(${m.senderClass})</span></div>
+            <p class="mt-2">${m.text || ''}</p>
+            <p class="text-xs opacity-60 mt-2">${m.timestamp ? new Date(m.timestamp.toDate()).toLocaleString() : 'Just now'}</p>
+          </div>`;
+      }).join('');
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    });
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  await db.collection('publicChat').add({
+    senderName: studentData.name,
+    senderClass: studentData.class,
+    text: text,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  input.value = '';
+}
+
+async function deleteMessage(messageId) {
+  if (confirm("Delete this message?")) {
+    await db.collection('publicChat').doc(messageId).delete();
+  }
+}
+
+async function toggleChatLock() {
+  if (!confirm("Are you sure you want to toggle the chat lock state?")) return;
+
+  const lockRef = db.collection('chatSettings').doc('lock');
+  const snap = await lockRef.get();
+
+  if (snap.exists) {
+    await lockRef.delete();
+    alert("Chat unlocked! Students can now send messages.");
+  } else {
+    await lockRef.set({
+      isLocked: true,
+      lockedBy: "Teacher",
+      lockedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    alert("Chat locked. No new messages can be sent.");
+  }
+
+  openPublicChat(); // Refresh view
+}
     // Teacher Dashboard - realtime
     function loadTeacherDashboard() {
   const content = document.getElementById('teacherContent');
@@ -4097,9 +4241,9 @@ async function register() {
     <!-- Students Tab Content -->
     <div id="studentsTab" class="block">
       <div class="flex justify-between items-center mb-6 px-4">
-  <h3 class="text-2xl font-bold">Registered Students (Roll Call)</h3>
-  <button onclick="location.reload()" class="btn bg-blue-600 hover:bg-blue-700 text-lg px-6">Refresh List</button>
-</div>
+        <h3 class="text-2xl font-bold">Registered Students (Roll Call)</h3>
+        <button onclick="location.reload()" class="btn bg-blue-600 hover:bg-blue-700 text-lg px-6">Refresh List</button>
+      </div>
       <div id="studentList" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <p class="text-center opacity-70 col-span-full">Loading students...</p>
       </div>
@@ -4117,34 +4261,54 @@ async function register() {
   // Default: show Students tab
   showTab('students');
 
-    // Load Registered Students
+  // Load Registered Students + Check Admin Status
   db.collection('students')
-    .onSnapshot((snapshot) => {
+    .onSnapshot(async (snapshot) => {
       const list = document.getElementById('studentList');
       if (snapshot.empty) {
         list.innerHTML = '<p class="text-center opacity-70 col-span-full text-2xl">No students registered yet</p>';
         return;
       }
 
-      list.innerHTML = snapshot.docs.map(doc => {
+      // Build the student cards
+      const studentCards = [];
+      for (const doc of snapshot.docs) {
         const s = doc.data();
         const regDate = s.createdAt ? new Date(s.createdAt.toDate()).toLocaleDateString() : '—';
- return `
-  <div class="glass-dark p-6 rounded-2xl text-center relative">
-    <button onclick="deleteStudent('${doc.id}')" class="absolute top-4 right-4 text-red-400 text-2xl hover:scale-110 transition">×</button>
-    <div class="font-bold text-xl mb-2">${s.name || 'No Name'}</div>
-    <div class="text-sm opacity-90">Class: ${s.class || '—'}</div>
-    <div class="text-sm opacity-90 mb-3">School: ${s.school || '—'}</div>
-    <div class="text-xs opacity-80 break-all">Email: ${s.email || '—'}</div>
-    <div class="text-xs opacity-70 mt-4">Joined: ${regDate}</div>
-  </div>`;
-      }).join('');
+
+        // Check if this student is an admin
+        const adminSnap = await db.collection('admins').doc(doc.id).get();
+        const isAdmin = adminSnap.exists;
+
+        studentCards.push(`
+          <div class="glass-dark p-6 rounded-2xl text-center relative">
+            <!-- Delete Student Button -->
+            <button onclick="deleteStudent('${doc.id}')" 
+                    class="absolute top-4 left-4 text-red-400 text-2xl hover:scale-110 transition">×</button>
+
+            <!-- Make/Remove Admin Button (hidden for teacher) -->
+            ${doc.id !== TEACHER_UID ? `
+              <button onclick="toggleAdmin('${doc.id}', '${s.name || 'this student'}')" 
+                      class="absolute top-4 right-4 text-yellow-400 text-lg hover:scale-110">
+                ${isAdmin ? '★ Admin' : '☆ Make Admin'}
+              </button>
+            ` : ''}
+
+            <div class="font-bold text-xl mb-2">${s.name || 'No Name'}</div>
+            <div class="text-sm opacity-90">Class: ${s.class || '—'}</div>
+            <div class="text-sm opacity-90 mb-3">School: ${s.school || '—'}</div>
+            <div class="text-xs opacity-80 break-all">Email: ${s.email || '—'}</div>
+            <div class="text-xs opacity-70 mt-4">Joined: ${regDate}</div>
+          </div>`);
+      }
+
+      list.innerHTML = studentCards.join('');
     }, (error) => {
       console.error("Students listener error:", error);
       document.getElementById('studentList').innerHTML = '<p class="text-center text-red-400">Connection issue. Refresh the page.</p>';
     });
 
-  // Load Exam Results
+  // Load Exam Results (unchanged)
   db.collection('results').orderBy('timestamp', 'desc')
     .onSnapshot((snapshot) => {
       const resultsList = document.getElementById('resultsList');
@@ -4172,6 +4336,20 @@ async function register() {
     });
 }
 
+    async function toggleAdmin(studentId, name) {
+  if (!confirm(`Make ${name} an admin? They will be able to delete chat messages.`)) return;
+  
+  const adminRef = db.collection('admins').doc(studentId);
+  const snap = await adminRef.get();
+  
+  if (snap.exists) {
+    await adminRef.delete();
+    alert(`${name} is no longer admin.`);
+  } else {
+    await adminRef.set({ name: name, appointedAt: new Date() });
+    alert(`${name} is now an admin!`);
+  }
+}
 // Tab switching function
 function showTab(tab) {
   document.getElementById('studentsTab').classList.toggle('hidden', tab !== 'students');
