@@ -4102,11 +4102,15 @@ async function register() {
   const lockSnap = await lockRef.get();
   const isLocked = lockSnap.exists && lockSnap.data()?.isLocked === true;
 
-  document.getElementById('app').innerHTML = `
+  // Decide where to render: #app (student view) or #teacherChatContainer (teacher dashboard tab)
+  const container = document.getElementById('teacherChatContainer') || document.getElementById('app');
+  if (!container) return;
+
+  container.innerHTML = `
     <div class="max-w-4xl mx-auto glass p-8 mt-8 rounded-3xl">
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-3xl font-bold">Public Discussion Chat</h2>
-        <button onclick="startSubjectSelection()" class="btn bg-gray-600 hover:bg-gray-700">Back</button>
+        <button onclick="goBackFromChat()" class="btn bg-gray-600 hover:bg-gray-700">Back</button>
       </div>
 
       <!-- Lock Status -->
@@ -4146,22 +4150,121 @@ async function register() {
         <p class="text-center opacity-70">Loading messages...</p>
       </div>
 
+      <!-- Multi-User Typing Indicator -->
+      <div id="typingIndicator" class="text-sm opacity-70 italic text-center py-1 hidden"></div>
+
       <!-- Send Area -->
       <div class="flex gap-4 ${isLocked && !isMainTeacher ? 'opacity-50' : ''}">
         <input id="chatInput" type="text" placeholder="${isLocked ? 'Chat is locked' : 'Type your message...'}" 
                class="flex-1 p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" 
-               ${isLocked && !isMainTeacher ? 'disabled' : ''}>
+               ${isLocked && !isMainTeacher ? 'disabled' : ''} onkeydown="if(event.key==='Enter') sendMessage()">
         <button onclick="sendMessage()" class="btn bg-green-600 hover:bg-green-700" 
                 ${isLocked && !isMainTeacher ? 'disabled' : ''}>Send</button>
       </div>
     </div>`;
 
+  // === REAL-TIME MULTI-USER TYPING INDICATOR ===
+  const typingRef = db.collection('typing');
+  const currentUserTypingRef = typingRef.doc(user);
+
+  const chatInput = container.querySelector('#chatInput');
+  const typingIndicator = container.querySelector('#typingIndicator');
+  let typingTimeout;
+
+  // When the current user starts typing
+  chatInput.addEventListener('input', () => {
+    if (chatInput.value.trim().length > 0) {
+      currentUserTypingRef.set({
+        typing: true,
+        name: isMainTeacher ? "Master Timothy" : studentData.name,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(stopTyping, 2000); // Stop marking as typing after 2s of inactivity
+  });
+
+  function stopTyping() {
+    currentUserTypingRef.delete();
+  }
+
+  // Listen to all typing users in real time
+  typingRef.onSnapshot((snapshot) => {
+    const typingUsers = [];
+    snapshot.forEach((doc) => {
+      if (doc.id !== user) { // Don't show yourself as typing
+        const data = doc.data();
+        if (data.name) typingUsers.push(data.name);
+      }
+    });
+
+    if (typingUsers.length > 0) {
+      let text;
+      if (typingUsers.length === 1) {
+        text = `${typingUsers[0]} is typing...`;
+      } else if (typingUsers.length <= 3) {
+        text = typingUsers.join(', ') + ' are typing...';
+      } else {
+        text = 'Several people are typing...';
+      }
+      typingIndicator.textContent = text;
+      typingIndicator.classList.remove('hidden');
+    } else {
+      typingIndicator.classList.add('hidden');
+    }
+  });
+
+  // Clean up typing status when leaving the chat
+  const originalGoBack = goBackFromChat;
+  goBackFromChat = function() {
+    stopTyping();
+    originalGoBack();
+  };
+
+  // Clean up when sending a message
+  const originalSendMessage = sendMessage;
+  sendMessage = async function() {
+    stopTyping();
+    await originalSendMessage();
+    chatInput.value = ''; // Clear input after send
+  };
+
   loadChatMessages(isAdmin);
 }
 
+    function goBackFromChat() {
+  if (document.getElementById('teacherChatContainer')) {
+    // Teacher is in dashboard → go back to students tab
+    showTab('students');
+  } else {
+    // Student view → go back to subject selection
+    startSubjectSelection();
+  }
+}
+    async function pinMessage(messageId) {
+  if (user !== TEACHER_UID) return; // Safety check
+
+  const messageRef = db.collection('publicChat').doc(messageId);
+  const snap = await messageRef.get();
+
+  if (!snap.exists) return;
+
+  const data = snap.data();
+  if (data.senderName !== "Master Timothy") return; // Only allow pinning your own
+
+  // Toggle pinned state
+  await messageRef.update({
+    pinned: !data.pinned
+  });
+}
+    
 function loadChatMessages(isAdmin) {
+  const isMainTeacher = user === TEACHER_UID;
+
   db.collection('publicChat')
-    .orderBy('timestamp', 'asc')
+    .orderBy('pinned', 'desc')      // Pinned messages first
+    .orderBy('timestamp', 'asc')    // Then by time
     .onSnapshot((snapshot) => {
       const messagesDiv = document.getElementById('chatMessages');
       if (snapshot.empty) {
@@ -4171,28 +4274,52 @@ function loadChatMessages(isAdmin) {
 
       messagesDiv.innerHTML = snapshot.docs.map(doc => {
         const m = doc.data();
+        const messageId = doc.id;
 
-        // Determine how to display the sender line
+        // Determine sender display
         let senderLine = `<div class="font-bold text-purple-300">${m.senderName}`;
         
         if (m.senderClass) {
-          // Normal students: show class in parentheses
           senderLine += ` <span class="text-xs opacity-70">(${m.senderClass})</span>`;
         } else if (m.senderName === "Master Timothy") {
-          // Special badge for Master Timothy
           senderLine += ` <span class="text-xs opacity-70 ml-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-2 py-1 rounded-full font-bold">★ Master ★</span>`;
         }
-        
         senderLine += `</div>`;
 
+        // Pinned indicator
+        const pinnedLabel = m.pinned ? 
+          '<div class="text-yellow-400 text-xs font-bold mb-2 tracking-wider">📌 PINNED ANNOUNCEMENT</div>' : '';
+
         return `
-          <div class="glass-dark p-4 rounded-xl text-left relative">
-            ${isAdmin ? `
-              <button onclick="deleteMessage('${doc.id}')" class="absolute top-2 right-2 text-red-400 text-xl hover:scale-110">×</button>
+          <div class="glass-dark p-4 rounded-xl text-left relative transition-all ${m.senderName === 'Master Timothy' ? 'bg-gradient-to-br from-yellow-900/30 to-orange-900/30 border border-yellow-600 shadow-lg shadow-yellow-900/20' : ''}">
+            
+            <!-- Pin Button - Only for Master Timothy's messages -->
+            ${isMainTeacher && m.senderName === "Master Timothy" ? `
+              <button onclick="pinMessage('${messageId}')" 
+                      class="absolute top-3 left-3 text-yellow-300 text-2xl hover:scale-125 transition z-10">
+                ${m.pinned ? '📌' : '📌'}
+              </button>
             ` : ''}
+
+            <!-- Delete Button - For admins -->
+            ${isAdmin ? `
+              <button onclick="deleteMessage('${messageId}')" 
+                      class="absolute top-3 right-3 text-red-400 text-2xl hover:scale-125 transition z-10">×</button>
+            ` : ''}
+
+            <!-- Pinned Label -->
+            ${pinnedLabel}
+
+            <!-- Sender Name + Badge -->
             ${senderLine}
-            <p class="mt-2">${m.text || ''}</p>
-            <p class="text-xs opacity-60 mt-2">${m.timestamp ? new Date(m.timestamp.toDate()).toLocaleString() : 'Just now'}</p>
+
+            <!-- Message Text -->
+            <p class="mt-2 whitespace-pre-wrap">${m.text || ''}</p>
+
+            <!-- Timestamp -->
+            <p class="text-xs opacity-60 mt-3">
+              ${m.timestamp ? new Date(m.timestamp.toDate()).toLocaleString() : 'Just now'}
+            </p>
           </div>`;
       }).join('');
 
