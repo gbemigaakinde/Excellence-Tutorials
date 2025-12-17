@@ -3719,7 +3719,7 @@ sss1: {
               <select id="regClass" class="w-full p-4 rounded-xl bg-white/20 text-white" required>
                 <option value="">Select Class</option>
                 <option>JSS1</option><option>JSS2</option><option>JSS3</option>
-                <option>SSS1</option><option>SSS2</option><option>SSS3</option>
+                <option>SSS1</option><option>SSS2</option><option>SSS3</option_od>
               </select>
               <input id="regSchool" placeholder="School Name" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" required>
               <input id="regEmail" type="email" placeholder="Email" class="w-full p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" required>
@@ -4097,33 +4097,15 @@ async function register() {
   const isAdminSnap = await db.collection('admins').doc(user).get();
   const isAdmin = isMainTeacher || isAdminSnap.exists;
 
-  // Safety check for students: ensure studentData is loaded
-  if (!isMainTeacher && !studentData) {
-    alert("Profile still loading. Please try again in a moment.");
-    startSubjectSelection();
-    return;
-  }
-
   // Get current lock state
   const lockRef = db.collection('chatSettings').doc('lock');
   const lockSnap = await lockRef.get();
   const isLocked = lockSnap.exists && lockSnap.data()?.isLocked === true;
 
-  // Robust container detection with fallback
-  let container = document.getElementById('teacherChatContainer') || document.getElementById('app');
+  // Decide where to render: #app (student view) or #teacherChatContainer (teacher dashboard tab)
+  const container = document.getElementById('teacherChatContainer') || document.getElementById('app');
+  if (!container) return;
 
-  // If container is still null (timing race), wait briefly and force #app as fallback
-  if (!container) {
-    console.warn("Chat container not immediately available — retrying...");
-    await new Promise(resolve => setTimeout(resolve, 150)); // Small delay for DOM update
-    container = document.getElementById('app');
-    if (!container) {
-      alert("Unable to load chat. Please refresh the page and try again.");
-      return;
-    }
-  }
-
-  // Clear and render the chat UI
   container.innerHTML = `
     <div class="max-w-4xl mx-auto glass p-8 mt-8 rounded-3xl">
       <div class="flex justify-between items-center mb-6">
@@ -4189,68 +4171,19 @@ async function register() {
   const typingIndicator = container.querySelector('#typingIndicator');
   let typingTimeout;
 
-  function stopTyping() {
-    currentUserTypingRef.delete().catch(() => {}); // Silent fail if doc doesn't exist
-  }
-
-  if (chatInput && typingIndicator) {
-    chatInput.addEventListener('input', () => {
-      if (chatInput.value.trim().length > 0) {
-        currentUserTypingRef.set({
-          typing: true,
-          name: isMainTeacher ? "Master Timothy" : studentData.name,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        }).catch(console.error);
-      }
-
-      clearTimeout(typingTimeout);
-      typingTimeout = setTimeout(stopTyping, 2000);
-    });
-
-    // Listen for others typing
-    typingRef.onSnapshot((snapshot) => {
-      const typingUsers = [];
-      snapshot.forEach((doc) => {
-        if (doc.id !== user && doc.data().name) {
-          typingUsers.push(doc.data().name);
-        }
+  // When the current user starts typing
+  chatInput.addEventListener('input', () => {
+    if (chatInput.value.trim().length > 0) {
+      currentUserTypingRef.set({
+        typing: true,
+        name: isMainTeacher ? "Master Timothy" : studentData.name,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
       });
+    }
 
-      if (typingUsers.length > 0) {
-        let text;
-        if (typingUsers.length === 1) {
-          text = `${typingUsers[0]} is typing...`;
-        } else if (typingUsers.length <= 3) {
-          text = typingUsers.join(', ') + ' are typing...';
-        } else {
-          text = 'Several people are typing...';
-        }
-        typingIndicator.textContent = text;
-        typingIndicator.classList.remove('hidden');
-      } else {
-        typingIndicator.classList.add('hidden');
-      }
-    });
-
-    // Cleanup on send
-    const originalSendMessage = sendMessage;
-    sendMessage = async function() {
-      stopTyping();
-      await originalSendMessage();
-      chatInput.value = '';
-    };
-
-    // Cleanup on back
-    const originalGoBack = goBackFromChat;
-    goBackFromChat = function() {
-      stopTyping();
-      originalGoBack();
-    };
-  }
-
-  // Load messages last
-  loadChatMessages(isAdmin);
-}
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(stopTyping, 2000); // Stop marking as typing after 2s of inactivity
+  });
 
   function stopTyping() {
     currentUserTypingRef.delete();
@@ -4481,7 +4414,7 @@ async function toggleChatLock() {
     <!-- Public Chat Tab Content -->
     <div id="chatTab" class="hidden">
       <div id="teacherChatContainer" class="max-w-4xl mx-auto mt-8">
-        <!-- Loading placeholder - openPublicChat() will replace this -->
+        <!-- The openPublicChat() function will inject the full chat UI here -->
         <div class="glass p-8 rounded-3xl text-center">
           <p class="text-xl opacity-70">Loading Public Discussion Chat...</p>
         </div>
@@ -4562,15 +4495,28 @@ async function toggleChatLock() {
       }).join('');
     });
 
-  // === SIMPLIFIED & RELIABLE Chat Tab Handling ===
+  // === NEW: Handle Chat Tab ===
+  // Override showTab temporarily to load the chat when needed
   const originalShowTab = showTab;
   showTab = function(tab) {
-    // First, run the original tab visibility logic
     originalShowTab(tab);
 
-    // When switching to chat tab, directly load the chat
     if (tab === 'chat') {
-      openPublicChat(); // This function handles container detection reliably
+      // Clear previous content and load the full public chat
+      const container = document.getElementById('teacherChatContainer');
+      if (container) {
+        container.innerHTML = ''; // Clear loading message
+        openPublicChat(); // This will inject the full chat UI into #app
+
+        // Change the Back button in the chat to return to dashboard
+        setTimeout(() => {
+          const backButtons = document.querySelectorAll('button[onclick="startSubjectSelection()"]');
+          backButtons.forEach(btn => {
+            btn.textContent = 'Back to Dashboard';
+            btn.onclick = () => showTab('students');
+          });
+        }, 200);
+      }
     }
   };
 }
