@@ -4006,132 +4006,182 @@ auth.onAuthStateChanged(async (firebaseUser) => {
     }
 
             async function submitExam() {
-      if (!confirm("Submit your exam now? You cannot change answers after this.")) return;
+  if (!confirm("Submit your exam now? You cannot change answers after this.")) return;
 
-      clearInterval(timerInterval);
+  clearInterval(timerInterval);
 
-      const submitBtn = document.querySelector('button[onclick="submitExam()"]');
-      if (submitBtn) setButtonLoading(submitBtn);
+  const submitBtn = document.querySelector('button[onclick="submitExam()"]');
+  if (submitBtn) setButtonLoading(submitBtn);
 
-      try {
-        const results = {
-          name: studentData.name,
-          class: studentData.class,
-          school: studentData.school,
-          subjects: exam.subjects,
-          correctAnswers: {},
-          scores: {},
-          percentage: 0,
-          grade: '',
-          timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        };
+  try {
+    const results = {
+      name: studentData.name,
+      class: studentData.class,
+      school: studentData.school,
+      subjects: exam.subjects,
+      correctAnswers: {},
+      scores: {},
+      percentage: 0,
+      grade: '',
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    };
 
-        let totalCorrect = 0;
-        let totalQuestions = 0;
+    let totalCorrect = 0;
+    let totalQuestions = 0;
 
-        for (const subj of exam.subjects) {
-          const qList = exam.questions[subj];
-          let correct = 0;
-          qList.forEach((q, i) => {
-            if (exam.answers[`${subj}-${i}`] == q.ans) correct++;
-          });
-          results.correctAnswers[subj] = correct;
-          results.scores[subj] = Math.round((correct / qList.length) * 100);
-          totalCorrect += correct;
-          totalQuestions += qList.length;
-        }
+    for (const subj of exam.subjects) {
+      const qList = exam.questions[subj];
+      let correct = 0;
+      qList.forEach((q, i) => {
+        if (exam.answers[`${subj}-${i}`] == q.ans) correct++;
+      });
+      results.correctAnswers[subj] = correct;
+      results.scores[subj] = Math.round((correct / qList.length) * 100);
+      totalCorrect += correct;
+      totalQuestions += qList.length;
+    }
 
-        results.percentage = Math.round((totalCorrect / totalQuestions) * 100);
+    results.percentage = Math.round((totalCorrect / totalQuestions) * 100);
 
-        if (results.percentage >= 90) results.grade = 'A';
-        else if (results.percentage >= 80) results.grade = 'B';
-        else if (results.percentage >= 70) results.grade = 'C';
-        else if (results.percentage >= 60) results.grade = 'D';
-        else results.grade = 'F';
+    if (results.percentage >= 90) results.grade = 'A';
+    else if (results.percentage >= 80) results.grade = 'B';
+    else if (results.percentage >= 70) results.grade = 'C';
+    else if (results.percentage >= 60) results.grade = 'D';
+    else results.grade = 'F';
 
-        // Save result to Firestore
-        await db.collection('results').add(results);
+    // Save result to Firestore
+    await db.collection('results').add(results);
 
-        // Delete ongoing exam
-        await db.collection('ongoingExams').doc(user).delete();
+    // Delete ongoing exam
+    await db.collection('ongoingExams').doc(user).delete();
 
-        // === SHOW RESULT PAGE ===
-        document.getElementById('app').innerHTML = `
-          <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
-            <h1 class="text-5xl font-bold mb-6 text-green-400">Exam Completed!</h1>
-            <p class="text-2xl mb-8">Congratulations, ${studentData.name}!</p>
+    // === DETAILED RESULT PAGE WITH CORRECTIONS & EXPLANATIONS ===
+    let resultHTML = `
+      <div class="max-w-5xl mx-auto glass p-10 mt-10 rounded-3xl">
+        <h1 class="text-5xl font-bold mb-6 text-center text-green-400">Exam Completed!</h1>
+        <p class="text-2xl mb-8 text-center">Congratulations, ${studentData.name}!</p>
 
-            <div class="glass-dark p-8 rounded-2xl mb-10">
-              <div class="text-6xl font-extrabold mb-4
-                ${results.grade === 'A' ? 'text-green-400' : 
-                  results.grade === 'B' ? 'text-blue-400' : 
-                  results.grade === 'C' ? 'text-yellow-400' : 
-                  results.grade === 'D' ? 'text-orange-400' : 'text-red-400'}">
-                ${results.percentage}% — Grade ${results.grade}
+        <div class="glass-dark p-8 rounded-2xl mb-10 text-center">
+          <div class="text-6xl font-extrabold mb-4
+            ${results.grade === 'A' ? 'text-green-400' : 
+              results.grade === 'B' ? 'text-blue-400' : 
+              results.grade === 'C' ? 'text-yellow-400' : 
+              results.grade === 'D' ? 'text-orange-400' : 'text-red-400'}">
+            ${results.percentage}% — Grade ${results.grade}
+          </div>
+        </div>
+
+        <div class="space-y-8 mb-12">`;
+
+    // Loop through each subject and show every question with correction
+    for (const subj of exam.subjects) {
+      const qList = exam.questions[subj];
+      resultHTML += `
+        <div class="glass-dark p-6 rounded-2xl">
+          <h3 class="text-2xl font-bold mb-4 text-center">
+            ${subj} — ${results.correctAnswers[subj]}/40 (${results.scores[subj]}%)
+          </h3>
+          <div class="space-y-6">`;
+
+      qList.forEach((q, i) => {
+        const studentAns = exam.answers[`${subj}-${i}`];
+        const isCorrect = studentAns != null && studentAns == q.ans;
+        const studentOptText = studentAns != null ? q.opts[studentAns] : "Not answered";
+        const correctOptText = q.opts[q.ans];
+
+        resultHTML += `
+          <div class="glass p-6 rounded-xl border-2 
+            ${isCorrect ? 'border-green-500 bg-green-900/20' : 'border-red-500 bg-red-900/20'}">
+            <div class="font-semibold text-lg mb-3">Question ${i + 1}</div>
+            <p class="mb-4">${q.q}</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <span class="font-medium">Your Answer:</span>
+                <span class="${isCorrect ? 'text-green-300' : 'text-red-300'} ml-2">
+                  ${studentAns != null ? `${studentAns + 1}. ${studentOptText}` : '—'}
+                </span>
+              </div>
+              <div>
+                <span class="font-medium">Correct Answer:</span>
+                <span class="text-green-300 ml-2">${q.ans + 1}. ${correctOptText}</span>
               </div>
             </div>
 
-            <div class="space-y-4 mb-10">
-              ${exam.subjects.map(subj => `
-                <div class="glass-dark p-4 rounded-xl">
-                  <div class="font-bold text-xl">${subj}</div>
-                  <div class="text-2xl">${results.correctAnswers[subj]}/40 (${results.scores[subj]}%)</div>
-                </div>
-              `).join('')}
+            <div class="bg-black/40 p-4 rounded-lg italic text-sm opacity-90">
+              <strong class="block mb-1">Explanation:</strong>
+              ${q.exp}
             </div>
 
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-              <button onclick="shareWhatsApp()" class="btn bg-green-600 hover:bg-green-700 text-xl px-8 py-4">
-                📱 Share on WhatsApp
-              </button>
-              <button onclick="copyResult()" class="btn bg-blue-600 hover:bg-blue-700 text-xl px-8 py-4">
-                📋 Copy Result
-              </button>
-              <button onclick="startSubjectSelection()" class="btn bg-purple-600 hover:bg-purple-700 text-xl px-8 py-4">
-                Start New Exam
-              </button>
+            <div class="mt-4 text-right text-2xl font-bold ${isCorrect ? 'text-green-400' : 'text-red-400'}">
+              ${isCorrect ? '✓ Correct' : '✗ Incorrect'}
             </div>
-
-            <p class="mt-10 text-sm opacity-70">Keep up the great work! 🌟</p>
           </div>`;
+      });
 
-        // Share functions
-        window.shareWhatsApp = function() {
-          const text = encodeURIComponent(
-            `🎉 Here is my attempt report:\n\n` +
-            `Name: ${results.name}\n` +
-            `Class: ${results.class}\n` +
-            `School: ${results.school}\n\n` +
-            `Overall: ${results.percentage}% - Grade ${results.grade}\n\n` +
-            exam.subjects.map(s => `${s}: ${results.scores[s]}%`).join('\n') +
-            `\n\nShared from Excellence CBT App`
-          );
-          window.open(`https://wa.me/?text=${text}`, '_blank');
-        };
-
-        window.copyResult = function() {
-          const text = 
-            `Excellence Tutorial Exam Result\n\n` +
-            `Name: ${results.name}\n` +
-            `Class: ${results.class}\n` +
-            `School: ${results.school}\n\n` +
-            `Overall: ${results.percentage}% - Grade ${results.grade}\n\n` +
-            exam.subjects.map(s => `${s}: ${results.scores[s]}%`).join('\n');
-
-          navigator.clipboard.writeText(text).then(() => {
-            alert("Result copied to clipboard!");
-          }).catch(() => {
-            alert("Copy failed. Please select and copy manually.");
-          });
-        };
-
-      } catch (err) {
-        console.error("Submission error:", err);
-        alert("Failed to submit exam: " + err.message + "\nCheck your internet or contact the teacher.");
-      } finally {
-        if (submitBtn) setButtonLoading(submitBtn, false);
-      }
+      resultHTML += `
+          </div>
+        </div>`;
     }
+
+    resultHTML += `
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+          <button onclick="shareWhatsApp()" class="btn bg-green-600 hover:bg-green-700 text-xl px-8 py-4">
+            📱 Share on WhatsApp
+          </button>
+          <button onclick="copyResult()" class="btn bg-blue-600 hover:bg-blue-700 text-xl px-8 py-4">
+            📋 Copy Summary
+          </button>
+          <button onclick="startSubjectSelection()" class="btn bg-purple-600 hover:bg-purple-700 text-xl px-8 py-4">
+            Start New Exam
+          </button>
+        </div>
+
+        <p class="text-center text-sm opacity-70">Review the explanations above to learn and improve! 🌟</p>
+      </div>`;
+
+    document.getElementById('app').innerHTML = resultHTML;
+
+    // === SHARE & COPY FUNCTIONS ===
+    window.shareWhatsApp = function() {
+      let text = `🎉 Excellence Tutorial Exam Result\n\n`;
+      text += `Name: ${results.name}\n`;
+      text += `Class: ${results.class}\n`;
+      text += `School: ${results.school}\n\n`;
+      text += `Overall Score: ${results.percentage}% - Grade ${results.grade}\n\n`;
+      exam.subjects.forEach(s => {
+        text += `${s}: ${results.scores[s]}%\n`;
+      });
+      text += `\nShared from Excellence CBT App ❤️`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    };
+
+    window.copyResult = function() {
+      let text = `Excellence Tutorial Exam Result\n\n`;
+      text += `Name: ${results.name}\n`;
+      text += `Class: ${results.class}\n`;
+      text += `School: ${results.school}\n\n`;
+      text += `Overall: ${results.percentage}% - Grade ${results.grade}\n\n`;
+      exam.subjects.forEach(s => {
+        text += `${s}: ${results.scores[s]}%\n`;
+      });
+
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Summary copied to clipboard!");
+      }).catch(() => {
+        alert("Copy failed. Please copy manually.");
+      });
+    };
+
+  } catch (err) {
+    console.error("Submission error:", err);
+    alert("Failed to submit exam: " + (err.message || "Unknown error") + "\nPlease check your connection.");
+  } finally {
+    if (submitBtn) setButtonLoading(submitBtn, false);
+  }
+}
     
 function toggleSubject(cb) {
   if (cb.checked) {
