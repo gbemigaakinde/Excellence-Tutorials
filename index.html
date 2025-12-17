@@ -11,7 +11,7 @@
   <link rel="icon" type="image/png" sizes="16x16" href="IMG_4512.png">
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Firebase SDKs (compat mode for simple HTML) -->
+  <!-- Firebase SDKs (compat mode) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -36,31 +36,31 @@
     ::-webkit-scrollbar-thumb { @apply bg-white/30 rounded-full; }
     ::-webkit-scrollbar-thumb:hover { @apply bg-white/50; }
 
-        select {
-      background-color: rgba(255, 255, 255, 0.15); /* Semi-transparent white to match glass inputs */
-      color: white; /* Text white */
+    select {
+      background-color: rgba(255, 255, 255, 0.15);
+      color: white;
       border: 1px solid rgba(255, 255, 255, 0.3);
-      appearance: none; /* Optional: removes default arrow for cleaner look */
-      padding-right: 2.5rem; /* Space for custom arrow if you want */
+      appearance: none;
+      padding-right: 2.5rem;
     }
 
     select option {
-      background-color: #4c1d95; /* Dark purple to match your gradient/theme */
-      color: white; /* Options text white */
+      background-color: #4c1d95;
+      color: white;
     }
 
-    /* Optional: Add a custom dropdown arrow */
     select {
       background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 20 20'%3e%3cpath d='M10 14l-6-6h12l-6 6z'/%3e%3c/svg%3e");
       background-repeat: no-repeat;
       background-position: right 1rem center;
       background-size: 12px;
     }
-        .btn-loading {
+
+    .btn-loading {
       opacity: 0.8;
       cursor: not-allowed;
       position: relative;
-      padding-right: 3.5rem; /* Extra space for spinner */
+      padding-right: 3.5rem;
     }
 
     .btn-loading::after {
@@ -87,7 +87,6 @@
   <div id="app" class="min-h-screen p-6"></div>
 
   <script>
-    // YOUR FIREBASE CONFIG (already pasted by you)
     const firebaseConfig = {
       apiKey: "AIzaSyCQk1Q5GyCVo3cKNcHaYHVzAnVeWlqkzns",
       authDomain: "excellencecbt.firebaseapp.com",
@@ -97,53 +96,16 @@
       appId: "1:24170253162:web:6e6cb86c5ffc84aebaf313"
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    let user = null;           // 'Teacher' or Firebase UID
+    let user = null;
     let exam = null;
     let timerInterval = null;
     let studentData = null;
 
     const TEACHER_UID = 'bV4u2V7aakMF7EyYe1bpCXGj4ny1';
-    
-    // ADD THIS ENTIRE BLOCK HERE (critical for student login to work)
-    auth.onAuthStateChanged(async (firebaseUser) => {
-  if (firebaseUser) {
-    user = firebaseUser.uid;
-
-    // === TEACHER LOGIN - PUT YOUR REAL TEACHER UID HERE ===
-    if (user === TEACHER_UID) {
-      render();  // Direct to teacher dashboard (skip student check)
-      return;
-    }
-
-    // === NORMAL STUDENT LOGIN ===
-    try {
-      const snap = await db.collection('students').doc(user).get();
-      if (snap.exists) {
-        studentData = snap.data();
-        loadOrStartExam();
-      } else {
-        alert("Student profile not found. Please register again.");
-        await auth.signOut();
-        render();
-      }
-    } catch (err) {
-      console.error("Error reading student doc:", err);
-      alert("Access error. If you are the teacher, contact support.");
-      await auth.signOut();
-      render();
-    }
-  } else {
-    user = null;
-    studentData = null;
-    render();  // Show login screen
-  }
-});
-
     // ==== PLACE YOUR FULL QUESTIONS OBJECT HERE ====
     const questions = {
     jss1: {
@@ -3670,19 +3632,39 @@ sss1: {
 }
 };
     // Auth state listener
-    auth.onAuthStateChanged(async (firebaseUser) => {
+auth.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
         user = firebaseUser.uid;
-        const snap = await db.collection('students').doc(user).get();
-        if (snap.exists) studentData = snap.data();
-        loadOrStartExam();   // Check for ongoing exam
+
+        if (user === TEACHER_UID) {
+          render();
+          return;
+        }
+
+        try {
+          const snap = await db.collection('students').doc(user).get();
+          if (snap.exists) {
+            studentData = snap.data();
+            loadOrStartExam();
+          } else {
+            alert("Student profile not found. Please register again.");
+            await auth.signOut();
+            render();
+          }
+        } catch (err) {
+          console.error("Error reading student doc:", err);
+          alert("Access error. If you are the teacher, contact support.");
+          await auth.signOut();
+          render();
+        }
       } else {
         user = null;
+        studentData = null;
         render();
       }
     });
 
-        function setButtonLoading(btn, loading = true) {
+    function setButtonLoading(btn, loading = true) {
       if (loading) {
         btn.disabled = true;
         btn.classList.add('btn-loading');
@@ -3691,12 +3673,11 @@ sss1: {
         btn.classList.remove('btn-loading');
       }
     }
-    
+
     function render() {
       const app = document.getElementById('app');
 
       if (!user) {
-        // Login / Register Screen
         app.innerHTML = `
           <div class="max-w-md mx-auto mt-20 glass p-10 text-center">
             <div class="text-center mb-12">
@@ -3729,99 +3710,76 @@ sss1: {
             </div>
           </div>`;
       } else if (user === TEACHER_UID) {
-  app.innerHTML = `<div class="max-w-6xl mx-auto glass p-8 mt-8 rounded-3xl">
-    <div class="flex justify-between items-center mb-8">
-      <h1 class="text-4xl font-bold">Teacher Dashboard</h1>
-      <button onclick="teacherLogout()" class="btn">Logout</button>
-    </div>
-    <div id="teacherContent">Loading results...</div>
-  </div>`;
-  loadTeacherDashboard();
-}
-      // Student flow handled by loadOrStartExam()
+        app.innerHTML = `<div class="max-w-6xl mx-auto glass p-8 mt-8 rounded-3xl">
+          <div class="flex justify-between items-center mb-8">
+            <h1 class="text-4xl font-bold">Teacher Dashboard</h1>
+            <button onclick="teacherLogout()" class="btn">Logout</button>
+          </div>
+          <div id="teacherContent">Loading...</div>
+        </div>`;
+        loadTeacherDashboard();
+      }
     }
 
     function showRegister() {
-  const loginDiv = document.getElementById('loginDiv');
-  const registerDiv = document.getElementById('registerDiv');
-  if (loginDiv) loginDiv.classList.add('hidden');
-  if (registerDiv) registerDiv.classList.remove('hidden');
-}
-
-function showLogin() {
-  const loginDiv = document.getElementById('loginDiv');
-  const registerDiv = document.getElementById('registerDiv');
-  if (registerDiv) registerDiv.classList.add('hidden');
-  if (loginDiv) loginDiv.classList.remove('hidden');
-}
-
-async function register() {
-  const btn = document.querySelector('#registerDiv button');
-  setButtonLoading(btn);
-
-  const email = document.getElementById('regEmail').value.trim();
-  const pass = document.getElementById('regPass').value;
-  const name = document.getElementById('regName').value.trim();
-  const classLevel = document.getElementById('regClass').value;
-  const school = document.getElementById('regSchool').value.trim();
-
-  if (!email || pass.length < 6 || !name || !classLevel || !school) {
-    alert("Please fill all fields correctly. Password must be at least 6 characters.");
-    setButtonLoading(btn, false);
-    return;
-  }
-
-  try {
-    const cred = await auth.createUserWithEmailAndPassword(email, pass);  // ← compat style
-    await db.collection('students').doc(cred.user.uid).set({
-      name,
-      class: classLevel,
-      school,
-      email,
-      createdAt: new Date()
-    });
-
-    alert("Registration successful! You can now login.");
-    showLogin();
-  } catch (err) {
-    if (err.code === 'auth/email-already-in-use') {
-      alert("This email is already registered. Please login instead.");
-    } else if (err.code === 'auth/invalid-email') {
-      alert("Invalid email format.");
-    } else if (err.code === 'auth/weak-password') {
-      alert("Password too weak (minimum 6 characters).");
-    } else {
-      alert("Registration failed: " + err.message);
+      document.getElementById('loginDiv').classList.add('hidden');
+      document.getElementById('registerDiv').classList.remove('hidden');
     }
-  } finally {
-    setButtonLoading(btn, false);
-  }
-}
-  async function login() {
-  const btn = document.querySelector('#loginDiv button');
-  setButtonLoading(btn);
 
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass = document.getElementById('loginPass').value;
-
-  // Student login - compat mode syntax
-  try {
-    await auth.signInWithEmailAndPassword(email, pass);
-    // Success handled by onAuthStateChanged
-  } catch (err) {
-    if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
-      alert("Incorrect email or password. Please try again.");
-    } else if (err.code === 'auth/invalid-email') {
-      alert("Please enter a valid email address.");
-    } else if (err.code === 'auth/too-many-requests') {
-      alert("Too many failed attempts. Please try again later.");
-    } else {
-      alert("Login failed: " + err.message);
+    function showLogin() {
+      document.getElementById('registerDiv').classList.add('hidden');
+      document.getElementById('loginDiv').classList.remove('hidden');
     }
-    setButtonLoading(btn, false);
-  }
-}
-    // RESUME FEATURE + EXAM FLOW
+
+    async function register() {
+      const btn = document.querySelector('#registerDiv button');
+      setButtonLoading(btn);
+
+      const email = document.getElementById('regEmail').value.trim();
+      const pass = document.getElementById('regPass').value;
+      const name = document.getElementById('regName').value.trim();
+      const classLevel = document.getElementById('regClass').value;
+      const school = document.getElementById('regSchool').value.trim();
+
+      if (!email || pass.length < 6 || !name || !classLevel || !school) {
+        alert("Please fill all fields correctly. Password must be at least 6 characters.");
+        setButtonLoading(btn, false);
+        return;
+      }
+
+      try {
+        const cred = await auth.createUserWithEmailAndPassword(email, pass);
+        await db.collection('students').doc(cred.user.uid).set({
+          name,
+          class: classLevel,
+          school,
+          email,
+          createdAt: new Date()
+        });
+        alert("Registration successful! You can now login.");
+        showLogin();
+      } catch (err) {
+        alert("Registration failed: " + (err.message || "Unknown error"));
+      } finally {
+        setButtonLoading(btn, false);
+      }
+    }
+
+    async function login() {
+      const btn = document.querySelector('#loginDiv button');
+      setButtonLoading(btn);
+
+      const email = document.getElementById('loginEmail').value.trim();
+      const pass = document.getElementById('loginPass').value;
+
+      try {
+        await auth.signInWithEmailAndPassword(email, pass);
+      } catch (err) {
+        alert("Login failed: " + (err.message || "Incorrect email or password"));
+        setButtonLoading(btn, false);
+      }
+    }
+
     async function loadOrStartExam() {
       const ongoingSnap = await db.collection('ongoingExams').doc(user).get();
       if (ongoingSnap.exists) {
@@ -3833,772 +3791,355 @@ async function register() {
       }
     }
 
-    async function startSubjectSelection() {
-  const classKey = studentData.class.toLowerCase().replace(/ /g, '');
-  const available = questions[classKey] ? Object.keys(questions[classKey]) : [];
-
-  document.getElementById('app').innerHTML = `
-    <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
-      <h1 class="text-4xl font-bold mb-8">Welcome, ${studentData.name}!</h1>
-      <p>Class: ${studentData.class} • School: ${studentData.school}</p>
-
-      <!-- Public Discussion Chat Button -->
-      <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700 text-xl px-12 py-4 my-8">
-        Public Discussion Chat
-      </button>
-
-      <p class="text-xl mb-8">Select at least 2 subjects for exam</p>
-      ${available.length === 0 
-        ? '<p class="text-red-400 text-2xl">No subjects available for your class</p>' 
-        : `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            ${available.map(s => `
-              <label class="glass p-6 rounded-xl cursor-pointer hover:scale-105 transition">
-                <input type="checkbox" value="${s}" onchange="toggleSubject(this)"> ${s}
-              </label>`).join('')}
-          </div>`
-      }
-      <button onclick="startExam()" id="startBtn" disabled class="btn text-xl px-12 mt-4">Start Exam</button>
-      <button onclick="auth.signOut()" class="mt-8 block mx-auto text-sm opacity-70">Logout</button>
-    </div>`;
-
-  exam = { step: 'subjects', chosen: [] };
-}
-
-    function toggleSubject(cb) {
-      if (cb.checked) exam.chosen.push(cb.value);
-      else exam.chosen = exam.chosen.filter(x => x !== cb.value);
-      document.getElementById('startBtn').disabled = exam.chosen.length < 2;
-    }
-
-  async function startExam() {
-  const btn = document.getElementById('startBtn'); // Your Start Exam button ID
-  setButtonLoading(btn); // Start spinner
-
-  const classKey = studentData.class.toLowerCase().replace(/ /g, '');
-  exam = {
-    step: 'exam',
-    subjects: [...exam.chosen],
-    current: 0,
-    questionIndex: 0,
-    answers: {},
-    startTime: Date.now(),
-    timeLeft: exam.chosen.length * 40 * 60, // seconds
-    classKey
-  };
-
-  try {
-    await db.collection('ongoingExams').doc(user).set(exam);
-    startTimer();
-    renderExam();
-    // No need to stop spinner here — page changes immediately to exam
-  } catch (err) {
-    alert("Error starting exam: " + err.message);
-    setButtonLoading(btn, false); // Stop spinner only on error
-  }
-}
-
-    function renderExam() {
-      const s = exam.subjects[exam.current];
-      const q = questions[exam.classKey][s][exam.questionIndex];
-
+    function startSubjectSelection() {
       document.getElementById('app').innerHTML = `
-        <div class="max-w-4xl mx-auto glass p-8 mt-8 rounded-3xl">
-          <div class="flex justify-between items-center mb-8">
-            <div>
-              <h2 class="text-3xl font-bold">${s}</h2>
-              <p>Q${exam.questionIndex+1}/40 • Overall ${exam.current*40 + exam.questionIndex + 1}/${exam.subjects.length*40}</p>
-            </div>
-            <div class="text-4xl font-bold" id="timer">00:00</div>
-          </div>
-          <div class="glass-dark p-8 rounded-2xl text-xl">
-            <p class="mb-8">${q.q}</p>
-            ${q.opts.map((opt,i) => `
-              <label class="block p-4 my-2 rounded-xl cursor-pointer hover:bg-white/10 ${exam.answers[`${s}-${exam.questionIndex}`]===i ? 'bg-white/30' : ''}">
-                <input type="radio" name="q" value="${i}" onchange="saveAnswer('${s}',${exam.questionIndex},${i})" ${exam.answers[`${s}-${exam.questionIndex}`]===i?'checked':''}>
-                ${opt}
-              </label>`).join('')}
-          </div>
-          <div class="grid grid-cols-3 gap-4 mt-8">
-            <button onclick="prevQuestion()" ${exam.current===0 && exam.questionIndex===0 ? 'disabled' : ''} class="btn">← Previous</button>
-            <button onclick="confirmSubmit()" class="btn bg-orange-600 hover:bg-orange-700">Submit Exam</button>
-            <button onclick="nextQuestion()" ${exam.current===exam.subjects.length-1 && exam.questionIndex===39 ? 'disabled' : ''} class="btn">Next →</button>
-          </div>
+        <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
+          <h1 class="text-4xl font-bold mb-8">Welcome, ${studentData.name}!</h1>
+          <p>Class: ${studentData.class} • School: ${studentData.school}</p>
+          <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700 text-xl px-12 py-4 my-8">Public Discussion Chat</button>
+          <p class="text-xl mb-8">No exam started yet. Contact your teacher to begin.</p>
+          <button onclick="auth.signOut()" class="btn text-xl">Logout</button>
         </div>`;
-      updateTimer();
-    }
-
-    async function saveAnswer(sub, idx, ans) {
-      exam.answers[`${sub}-${idx}`] = ans;
-      await db.collection('ongoingExams').doc(user).update({answers: exam.answers});
-    }
-
-    function nextQuestion() {
-      if (exam.questionIndex < 39) exam.questionIndex++;
-      else if (exam.current < exam.subjects.length-1) { exam.current++; exam.questionIndex = 0; }
-      renderExam();
-    }
-
-    function prevQuestion() {
-      if (exam.questionIndex > 0) exam.questionIndex--;
-      else if (exam.current > 0) { exam.current--; exam.questionIndex = 39; }
-      renderExam();
-    }
-
-    async function startTimer() {
-      timerInterval = setInterval(async () => {
-        exam.timeLeft--;
-        await db.collection('ongoingExams').doc(user).update({timeLeft: exam.timeLeft});
-        if (exam.timeLeft <= 0) finishExam();
-        updateTimer();
-      }, 1000);
-    }
-
-    function updateTimer() {
-      const timerEl = document.getElementById('timer');
-      if (!timerEl) return;
-      const m = String(Math.floor(exam.timeLeft / 60)).padStart(2, '0');
-      const s = String(exam.timeLeft % 60).padStart(2, '0');
-      timerEl.textContent = `${m}:${s}`;
-      if (exam.timeLeft <= 300) timerEl.classList.add('low');
-    }
-
-    async function confirmSubmit() {
-  if (confirm("Submit exam now?")) {
-    const btn = document.querySelector('button.bg-orange-600'); // Adjust selector if needed
-    setButtonLoading(btn); // Start spinner
-
-    try {
-      await finishExam(); // This saves results and changes to result page
-      // No need to stop spinner — page changes immediately
-    } catch (err) {
-      alert("Error submitting exam: " + err.message);
-      setButtonLoading(btn, false); // Stop spinner only on error (rare)
-    }
-  }
-}
-
-    async function finishExam() {
-  clearInterval(timerInterval);
-  await db.collection('ongoingExams').doc(user).delete();
-
-  const scores = {};
-  const correctAnswers = {};
-  let totalCorrect = 0;
-
-  for (const sub of exam.subjects) {
-    let correct = 0;
-    const subjectQuestions = questions[exam.classKey][sub];  // <-- Critical line that was missing/broken
-    for (let i = 0; i < 40; i++) {
-      const key = `${sub}-${i}`;
-      if (exam.answers[key] != null && exam.answers[key] === subjectQuestions[i].ans) {
-        correct++;
-      }
-    }
-    scores[sub] = Math.round((correct / 40) * 100);
-    correctAnswers[sub] = correct;
-    totalCorrect += correct;
-  }
-
-  const percentage = Math.round((totalCorrect / (exam.subjects.length * 40)) * 100);
-  const grade = percentage >= 70 ? 'A' : percentage >= 60 ? 'B' : percentage >= 50 ? 'C' : percentage >= 40 ? 'D' : 'F';
-
-  await db.collection('results').add({
-    studentId: user,
-    name: studentData.name,
-    class: studentData.class,
-    school: studentData.school,
-    subjects: exam.subjects,
-    scores,
-    correctAnswers,
-    totalCorrect,
-    totalQuestions: exam.subjects.length * 40,
-    percentage,
-    grade,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  });
-
-  exam = { 
-  step: 'result', 
-  result: {
-    name: studentData.name, 
-    class: studentData.class, 
-    classKey: exam.classKey,  // <-- Add this line
-    subjects: exam.subjects, 
-    scores, 
-    correctAnswers, 
-    percentage, 
-    grade,
-    answers: exam.answers  // <-- Also save answers for review
-  } 
-};
-  renderResult();
-}
-    function renderResult() {
-  const r = exam.result;
-  document.getElementById('app').innerHTML = `
-    <div class="max-w-6xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
-      <h1 class="text-6xl font-bold mb-4">Exam Complete!</h1>
-      <div class="text-8xl font-bold mb-6">${r.percentage}%</div>
-      <div class="text-5xl font-bold mb-8">Grade: ${r.grade}</div>
-      <p class="text-2xl mb-8">Well done, ${r.name}!</p>
-      <button onclick="shareViaWhatsApp()" class="btn bg-green-600 hover:bg-green-700 text-xl mb-8">Send Result to Teacher (WhatsApp)</button>
-
-      <!-- Summary Cards -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-        ${r.subjects.map(s => `
-          <div class="glass-dark p-6 rounded-2xl text-center">
-            <div class="text-lg font-semibold">${s}</div>
-            <div class="text-5xl font-bold my-4">${r.scores[s]}%</div>
-            <div class="text-sm opacity-80">${r.correctAnswers[s]}/40 correct</div>
-          </div>`).join('')}
-      </div>
-
-            <!-- Review Answers Section -->
-      <div class="text-left max-w-4xl mx-auto">
-        <h2 class="text-3xl font-bold mb-6 text-center">Answer Review</h2>
-        ${r.subjects.map((sub) => {
-          const subjectQuestions = questions[r.classKey][sub];
-          return `
-            <div class="mb-10">
-              <h3 class="text-2xl font-bold mb-4">${sub}</h3>
-              ${subjectQuestions.map((q, i) => {
-                const key = `${sub}-${i}`;
-                const userAns = r.answers ? r.answers[key] : undefined;
-                const isCorrect = userAns === q.ans;
-                const userOpt = userAns !== undefined ? q.opts[userAns] : "Not answered";
-                const correctOpt = q.opts[q.ans];
-                return `
-                  <div class="glass-dark p-6 rounded-2xl mb-4">
-                    <p class="font-semibold mb-2">Q${i+1}: ${q.q}</p>
-                    <p class="${isCorrect ? 'text-green-400' : 'text-red-400'}">
-                      Your answer: <b>${userOpt}</b>
-                    </p>
-                    ${!isCorrect ? `<p class="text-green-400">Correct answer: <b>${correctOpt}</b></p>` : ''}
-                    <p class="mt-3 text-sm opacity-90"><b>Explanation:</b> ${q.exp}</p>
-                  </div>`;
-              }).join('')}
-            </div>`;
-        }).join('')}
-      </div>
-
-      <button onclick="auth.signOut()" class="btn text-2xl px-16 mt-12">Back to Login</button>
-    </div>`;
-}
-
-    function shareViaWhatsApp() {
-      let msg = `Hello Sir,\n\nMy exam result:\nName: ${exam.result.name}\nClass: ${exam.result.class}\nOverall: ${exam.result.percentage}% (Grade ${exam.result.grade})\n\n`;
-      exam.result.subjects.forEach(s => msg += `${s}: ${exam.result.correctAnswers[s]}/40 (${exam.result.scores[s]}%)\n`);
-      msg += `\nThank you!`;
-      window.open(`https://wa.me/2348155095660?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
     async function openPublicChat() {
-  const isTeacherView = !!document.getElementById('teacherChatContainer');
-  const container = isTeacherView ? document.getElementById('teacherChatContainer') : document.getElementById('app');
+      const isTeacherView = !!document.getElementById('teacherChatContainer');
+      const container = isTeacherView ? document.getElementById('teacherChatContainer') : document.getElementById('app');
 
-  if (!container) {
-    console.error("Chat container not found!");
-    return;
-  }
+      if (!container) return;
 
-  const isMainTeacher = user === TEACHER_UID;
-  const isAdminSnap = await db.collection('admins').doc(user).get();
-  const isAdmin = isMainTeacher || isAdminSnap.exists;
+      const isMainTeacher = user === TEACHER_UID;
+      const isAdminSnap = await db.collection('admins').doc(user).get();
+      const isAdmin = isMainTeacher || isAdminSnap.exists;
 
-  const lockRef = db.collection('chatSettings').doc('lock');
-  const lockSnap = await lockRef.get();
-  const isLocked = lockSnap.exists && lockSnap.data()?.isLocked === true;
+      const lockSnap = await db.collection('chatSettings').doc('lock').get();
+      const isLocked = lockSnap.exists && lockSnap.data()?.isLocked === true;
 
-  container.innerHTML = `
-    <div class="max-w-4xl mx-auto glass p-8 mt-8 rounded-3xl">
-      <div class="flex justify-between items-center mb-6">
-        <h2 class="text-3xl font-bold">Public Discussion Chat</h2>
-        <button onclick="goBackFromChat()" class="btn bg-gray-600 hover:bg-gray-700">Back</button>
-      </div>
+      container.innerHTML = `
+        <div class="max-w-4xl mx-auto glass p-8 mt-8 rounded-3xl">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-bold">Public Discussion Chat</h2>
+            <button onclick="goBackFromChat()" class="btn bg-gray-600 hover:bg-gray-700">Back</button>
+          </div>
 
-      ${isLocked ? `
-        <div class="glass-dark p-4 rounded-xl mb-6 text-center bg-red-900/50 border border-red-500">
-          <p class="text-xl font-bold text-red-300">Chat is currently LOCKED</p>
-          <p class="text-sm opacity-90">No new messages can be sent until the teacher unlocks it.</p>
-        </div>
-      ` : `
-        <div class="glass-dark p-4 rounded-xl mb-6 text-center bg-green-900/30 border border-green-500">
-          <p class="text-xl font-bold text-green-300">Chat is OPEN</p>
-        </div>
-      `}
+          ${isLocked ? `
+            <div class="glass-dark p-4 rounded-xl mb-6 text-center bg-red-900/50 border border-red-500">
+              <p class="text-xl font-bold text-red-300">Chat is currently LOCKED</p>
+              <p class="text-sm opacity-90">No new messages can be sent until the teacher unlocks it.</p>
+            </div>
+          ` : `
+            <div class="glass-dark p-4 rounded-xl mb-6 text-center bg-green-900/30 border border-green-500">
+              <p class="text-xl font-bold text-green-300">Chat is OPEN</p>
+            </div>
+          `}
 
-      ${isMainTeacher ? `
-        <div class="text-center mb-6">
-          <button onclick="toggleChatLock()" class="btn ${isLocked ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'} text-xl px-8">
-            ${isLocked ? 'Unlock Chat' : 'Lock Chat'}
-          </button>
-        </div>
-      ` : ''}
-
-      <div class="glass-dark p-4 rounded-xl mb-6 text-left text-sm">
-        <p class="font-bold mb-2">Chat Rules:</p>
-        <ul class="list-disc pl-6 space-y-1 opacity-90">
-          <li>Be respectful and kind to everyone.</li>
-          <li>Share only academic-related content (questions, solutions, notes).</li>
-          <li>No bullying, insults, or off-topic messages.</li>
-          <li>No sharing of personal information.</li>
-          <li>Admins can delete messages that break rules.</li>
-        </ul>
-      </div>
-
-      <div id="chatMessages" class="glass-dark p-6 rounded-2xl mb-6 max-h-96 overflow-y-auto space-y-4">
-        <p class="text-center opacity-70">Loading messages...</p>
-      </div>
-
-      <div id="typingIndicator" class="text-sm opacity-70 italic text-center py-1 hidden"></div>
-
-      <div class="flex gap-4 ${isLocked && !isMainTeacher ? 'opacity-50' : ''}">
-        <input id="chatInput" type="text" placeholder="${isLocked && !isMainTeacher ? 'Chat is locked' : 'Type your message...'}" 
-               class="flex-1 p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" 
-               ${isLocked && !isMainTeacher ? 'disabled' : ''} onkeydown="if(event.key==='Enter') sendMessage()">
-        <button onclick="sendMessage()" class="btn bg-green-600 hover:bg-green-700" 
-                ${isLocked && !isMainTeacher ? 'disabled' : ''}>Send</button>
-      </div>
-    </div>`;
-
-  // Typing indicator and message loading (unchanged from your working version)
-  const typingRef = db.collection('typing');
-  const currentUserTypingRef = typingRef.doc(user);
-
-  const chatInput = container.querySelector('#chatInput');
-  const typingIndicator = container.querySelector('#typingIndicator');
-  let typingTimeout;
-
-  chatInput.addEventListener('input', () => {
-    if (chatInput.value.trim().length > 0) {
-      currentUserTypingRef.set({
-        typing: true,
-        name: isMainTeacher ? "Master Timothy" : studentData?.name || "Student",
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
-
-    clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => currentUserTypingRef.delete(), 2000);
-  });
-
-  typingRef.onSnapshot((snapshot) => {
-    const typingUsers = [];
-    snapshot.forEach((doc) => {
-      if (doc.id !== user) {
-        const data = doc.data();
-        if (data.name) typingUsers.push(data.name);
-      }
-    });
-
-    if (typingUsers.length > 0) {
-      let text = typingUsers.length === 1 
-        ? `${typingUsers[0]} is typing...` 
-        : typingUsers.length <= 3 
-          ? typingUsers.join(', ') + ' are typing...' 
-          : 'Several people are typing...';
-      typingIndicator.textContent = text;
-      typingIndicator.classList.remove('hidden');
-    } else {
-      typingIndicator.classList.add('hidden');
-    }
-  });
-
-  loadChatMessages(isAdmin);
-
-  // Clean up on back
-  const originalGoBack = goBackFromChat;
-  goBackFromChat = function() {
-    currentUserTypingRef.delete();
-    if (isTeacherView) {
-      showTab('students');
-    } else {
-      originalGoBack();
-    }
-  };
-}
-
-  function stopTyping() {
-    currentUserTypingRef.delete();
-  }
-
-  // Listen to all typing users in real time
-  typingRef.onSnapshot((snapshot) => {
-    const typingUsers = [];
-    snapshot.forEach((doc) => {
-      if (doc.id !== user) { // Don't show yourself as typing
-        const data = doc.data();
-        if (data.name) typingUsers.push(data.name);
-      }
-    });
-
-    if (typingUsers.length > 0) {
-      let text;
-      if (typingUsers.length === 1) {
-        text = `${typingUsers[0]} is typing...`;
-      } else if (typingUsers.length <= 3) {
-        text = typingUsers.join(', ') + ' are typing...';
-      } else {
-        text = 'Several people are typing...';
-      }
-      typingIndicator.textContent = text;
-      typingIndicator.classList.remove('hidden');
-    } else {
-      typingIndicator.classList.add('hidden');
-    }
-  });
-
-  // Clean up typing status when leaving the chat
-  const originalGoBack = goBackFromChat;
-  goBackFromChat = function() {
-    stopTyping();
-    originalGoBack();
-  };
-
-  // Clean up when sending a message
-  const originalSendMessage = sendMessage;
-  sendMessage = async function() {
-    stopTyping();
-    await originalSendMessage();
-    chatInput.value = ''; // Clear input after send
-  };
-
-  loadChatMessages(isAdmin);
-}
-
-    function goBackFromChat() {
-  if (document.getElementById('teacherChatContainer')) {
-    // Teacher is in dashboard → go back to students tab
-    showTab('students');
-  } else {
-    // Student view → go back to subject selection
-    startSubjectSelection();
-  }
-}
-    async function pinMessage(messageId) {
-  if (user !== TEACHER_UID) return; // Safety check
-
-  const messageRef = db.collection('publicChat').doc(messageId);
-  const snap = await messageRef.get();
-
-  if (!snap.exists) return;
-
-  const data = snap.data();
-  if (data.senderName !== "Master Timothy") return; // Only allow pinning your own
-
-  // Toggle pinned state
-  await messageRef.update({
-    pinned: !data.pinned
-  });
-}
-    
-function loadChatMessages(isAdmin) {
-  const isMainTeacher = user === TEACHER_UID;
-
-  db.collection('publicChat')
-    .orderBy('pinned', 'desc')      // Pinned messages first
-    .orderBy('timestamp', 'asc')    // Then by time
-    .onSnapshot((snapshot) => {
-      const messagesDiv = document.getElementById('chatMessages');
-      if (snapshot.empty) {
-        messagesDiv.innerHTML = '<p class="text-center opacity-70">No messages yet. Start the discussion!</p>';
-        return;
-      }
-
-      messagesDiv.innerHTML = snapshot.docs.map(doc => {
-        const m = doc.data();
-        const messageId = doc.id;
-
-        // Determine sender display
-        let senderLine = `<div class="font-bold text-purple-300">${m.senderName}`;
-        
-        if (m.senderClass) {
-          senderLine += ` <span class="text-xs opacity-70">(${m.senderClass})</span>`;
-        } else if (m.senderName === "Master Timothy") {
-          senderLine += ` <span class="text-xs opacity-70 ml-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-2 py-1 rounded-full font-bold">★ Master ★</span>`;
-        }
-        senderLine += `</div>`;
-
-        // Pinned indicator
-        const pinnedLabel = m.pinned ? 
-          '<div class="text-yellow-400 text-xs font-bold mb-2 tracking-wider">📌 PINNED ANNOUNCEMENT</div>' : '';
-
-        return `
-          <div class="glass-dark p-4 rounded-xl text-left relative transition-all ${m.senderName === 'Master Timothy' ? 'bg-gradient-to-br from-yellow-900/30 to-orange-900/30 border border-yellow-600 shadow-lg shadow-yellow-900/20' : ''}">
-            
-            <!-- Pin Button - Only for Master Timothy's messages -->
-            ${isMainTeacher && m.senderName === "Master Timothy" ? `
-              <button onclick="pinMessage('${messageId}')" 
-                      class="absolute top-3 left-3 text-yellow-300 text-2xl hover:scale-125 transition z-10">
-                ${m.pinned ? '📌' : '📌'}
+          ${isMainTeacher ? `
+            <div class="text-center mb-6">
+              <button onclick="toggleChatLock()" class="btn ${isLocked ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'} text-xl px-8">
+                ${isLocked ? 'Unlock Chat' : 'Lock Chat'}
               </button>
-            ` : ''}
-
-            <!-- Delete Button - For admins -->
-            ${isAdmin ? `
-              <button onclick="deleteMessage('${messageId}')" 
-                      class="absolute top-3 right-3 text-red-400 text-2xl hover:scale-125 transition z-10">×</button>
-            ` : ''}
-
-            <!-- Pinned Label -->
-            ${pinnedLabel}
-
-            <!-- Sender Name + Badge -->
-            ${senderLine}
-
-            <!-- Message Text -->
-            <p class="mt-2 whitespace-pre-wrap">${m.text || ''}</p>
-
-            <!-- Timestamp -->
-            <p class="text-xs opacity-60 mt-3">
-              ${m.timestamp ? new Date(m.timestamp.toDate()).toLocaleString() : 'Just now'}
-            </p>
-          </div>`;
-      }).join('');
-
-      // Auto-scroll to bottom
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    });
-}
-
-async function sendMessage() {
-  const input = document.getElementById('chatInput');
-  const text = input.value.trim();
-  if (!text) return;
-
-  // Determine sender name and class/tag
-  let senderName = studentData.name;
-  let senderClass = studentData.class;
-
-  // Special handling for the main teacher
-  if (user === TEACHER_UID) {
-    senderName = "Master Timothy";     // Your special display name
-    senderClass = "";                   // Hide class, or set to something like "Teacher" if you want
-  }
-
-  await db.collection('publicChat').add({
-    senderName: senderName,
-    senderClass: senderClass,             // Will be empty for you → no class shown
-    text: text,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  });
-
-  input.value = '';
-}
-
-async function deleteMessage(messageId) {
-  if (confirm("Delete this message?")) {
-    await db.collection('publicChat').doc(messageId).delete();
-  }
-}
-
-async function toggleChatLock() {
-  if (!confirm("Are you sure you want to toggle the chat lock state?")) return;
-
-  const lockRef = db.collection('chatSettings').doc('lock');
-  const snap = await lockRef.get();
-
-  if (snap.exists) {
-    await lockRef.delete();
-    alert("Chat unlocked! Students can now send messages.");
-  } else {
-    await lockRef.set({
-      isLocked: true,
-      lockedBy: "Teacher",
-      lockedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    alert("Chat locked. No new messages can be sent.");
-  }
-
-  openPublicChat(); // Refresh view
-}
-    // Teacher Dashboard - realtime
-    function loadTeacherDashboard() {
-  const content = document.getElementById('teacherContent');
-  content.innerHTML = `
-    <h2 class="text-3xl font-bold mb-8 text-center">Teacher Dashboard</h2>
-
-    <!-- Tabs -->
-    <div class="flex justify-center mb-8 gap-4 flex-wrap">
-      <button id="tabStudents" class="btn text-xl px-8 py-4" onclick="showTab('students')">Registered Students</button>
-      <button id="tabResults" class="btn text-xl px-8 py-4" onclick="showTab('results')">Exam Results</button>
-      <button id="tabChat" class="btn text-xl px-8 py-4 bg-green-600 hover:bg-green-700" onclick="showTab('chat')">Public Discussion Chat</button>
-    </div>
-
-    <!-- Students Tab -->
-    <div id="studentsTab" class="block">
-      <div class="flex justify-between items-center mb-6 px-4">
-        <h3 class="text-2xl font-bold">Registered Students (Roll Call)</h3>
-        <button onclick="location.reload()" class="btn bg-blue-600 hover:bg-blue-700 text-lg px-6">Refresh List</button>
-      </div>
-      <div id="studentList" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        <p class="text-center opacity-70 col-span-full">Loading students...</p>
-      </div>
-    </div>
-
-    <!-- Results Tab -->
-    <div id="resultsTab" class="hidden">
-      <h3 class="text-2xl font-bold mb-6 text-center">Submitted Exam Results</h3>
-      <div id="resultsList" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        <p class="text-center opacity-70 col-span-full">Loading results...</p>
-      </div>
-    </div>
-
-    <!-- Chat Tab -->
-    <div id="chatTab" class="hidden">
-      <div id="teacherChatContainer" class="max-w-5xl mx-auto mt-8">
-        <!-- Chat will be injected here -->
-      </div>
-    </div>
-  `;
-
-  // Show students tab by default
-  showTab('students');
-
-  // === Real-time listeners (your original code - unchanged) ===
-  db.collection('students').onSnapshot(async (snapshot) => {
-    const list = document.getElementById('studentList');
-    if (snapshot.empty) {
-      list.innerHTML = '<p class="text-center opacity-70 col-span-full text-2xl">No students registered yet</p>';
-      return;
-    }
-
-    const studentCards = [];
-    for (const doc of snapshot.docs) {
-      const s = doc.data();
-      const regDate = s.createdAt ? new Date(s.createdAt.toDate()).toLocaleDateString() : '—';
-      const adminSnap = await db.collection('admins').doc(doc.id).get();
-      const isAdmin = adminSnap.exists;
-
-      studentCards.push(`
-        <div class="glass-dark p-6 rounded-2xl text-center relative">
-          <button onclick="deleteStudent('${doc.id}')" 
-                  class="absolute top-4 left-4 text-red-400 text-2xl hover:scale-110 transition">×</button>
-
-          ${doc.id !== TEACHER_UID ? `
-            <button onclick="toggleAdmin('${doc.id}', '${s.name || 'this student'}')" 
-                    class="absolute top-4 right-4 text-yellow-400 text-lg hover:scale-110">
-              ${isAdmin ? '★ Admin' : '☆ Make Admin'}
-            </button>
+            </div>
           ` : ''}
 
-          <div class="font-bold text-xl mb-2">${s.name || 'No Name'}</div>
-          <div class="text-sm opacity-90">Class: ${s.class || '—'}</div>
-          <div class="text-sm opacity-90 mb-3">School: ${s.school || '—'}</div>
-          <div class="text-xs opacity-80 break-all">Email: ${s.email || '—'}</div>
-          <div class="text-xs opacity-70 mt-4">Joined: ${regDate}</div>
-        </div>`);
-    }
-    list.innerHTML = studentCards.join('');
-  });
-
-  db.collection('results').orderBy('timestamp', 'desc').onSnapshot((snapshot) => {
-    const resultsList = document.getElementById('resultsList');
-    if (snapshot.empty) {
-      resultsList.innerHTML = '<p class="text-center opacity-70 col-span-full text-2xl">No exam results submitted yet</p>';
-      return;
-    }
-
-    resultsList.innerHTML = snapshot.docs.map(doc => {
-      const r = doc.data();
-      return `
-        <div class="glass-dark p-6 rounded-2xl relative">
-          <button onclick="deleteResult('${doc.id}')" class="absolute top-4 right-4 text-red-400 text-2xl hover:scale-110">×</button>
-          <div class="font-bold text-xl">${r.name || 'Unknown'}</div>
-          <div class="text-sm opacity-80">${r.class} • ${r.school}</div>
-          <div class="text-sm opacity-70 mt-2">
-            ${r.timestamp ? new Date(r.timestamp.toDate()).toLocaleString() : 'Just now'}
+          <div class="glass-dark p-4 rounded-xl mb-6 text-left text-sm">
+            <p class="font-bold mb-2">Chat Rules:</p>
+            <ul class="list-disc pl-6 space-y-1 opacity-90">
+              <li>Be respectful and kind to everyone.</li>
+              <li>Share only academic-related content.</li>
+              <li>No bullying or off-topic messages.</li>
+              <li>No sharing of personal information.</li>
+              <li>Admins can delete messages that break rules.</li>
+            </ul>
           </div>
-          ${r.subjects.map(s => `
-            <div class="mt-3"><b>${s}:</b> ${r.correctAnswers[s]}/40 (${r.scores[s]}%)</div>
-          `).join('')}
-          <div class="mt-6 text-center text-4xl font-bold">${r.percentage}% → Grade ${r.grade}</div>
+
+          <div id="chatMessages" class="glass-dark p-6 rounded-2xl mb-6 max-h-96 overflow-y-auto space-y-4">
+            <p class="text-center opacity-70">Loading messages...</p>
+          </div>
+
+          <div id="typingIndicator" class="text-sm opacity-70 italic text-center py-1 hidden"></div>
+
+          <div class="flex gap-4 ${isLocked && !isMainTeacher ? 'opacity-50' : ''}">
+            <input id="chatInput" type="text" placeholder="${isLocked && !isMainTeacher ? 'Chat is locked' : 'Type your message...'}" 
+                   class="flex-1 p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" 
+                   ${isLocked && !isMainTeacher ? 'disabled' : ''} onkeydown="if(event.key==='Enter') sendMessage()">
+            <button onclick="sendMessage()" class="btn bg-green-600 hover:bg-green-700" 
+                    ${isLocked && !isMainTeacher ? 'disabled' : ''}>Send</button>
+          </div>
         </div>`;
-    }).join('');
-  });
-}
 
-// === Fixed: showTab now automatically loads chat when selected ===
-function showTab(tab) {
-  // Hide/show tabs
-  document.getElementById('studentsTab').classList.toggle('hidden', tab !== 'students');
-  document.getElementById('resultsTab').classList.toggle('hidden', tab !== 'results');
-  document.getElementById('chatTab').classList.toggle('hidden', tab !== 'chat');
+      const typingRef = db.collection('typing');
+      const currentUserTypingRef = typingRef.doc(user);
+      const chatInput = container.querySelector('#chatInput');
+      const typingIndicator = container.querySelector('#typingIndicator');
+      let typingTimeout;
 
-  // Active button styling
-  document.getElementById('tabStudents').classList.toggle('bg-purple-700', tab === 'students');
-  document.getElementById('tabStudents').classList.toggle('bg-purple-600', tab !== 'students');
-  document.getElementById('tabResults').classList.toggle('bg-purple-700', tab === 'results');
-  document.getElementById('tabResults').classList.toggle('bg-purple-600', tab !== 'results');
-  document.getElementById('tabChat').classList.toggle('bg-green-700', tab === 'chat');
-  document.getElementById('tabChat').classList.toggle('bg-green-600', tab !== 'chat');
+      chatInput.addEventListener('input', () => {
+        if (chatInput.value.trim()) {
+          currentUserTypingRef.set({
+            typing: true,
+            name: isMainTeacher ? "Master Timothy" : studentData?.name || "Student",
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => currentUserTypingRef.delete(), 2000);
+      });
 
-  // === THIS IS THE KEY FIX: Load chat automatically when tab is clicked ===
-  if (tab === 'chat') {
-    const container = document.getElementById('teacherChatContainer');
-    if (container && container.innerHTML.trim() === '') {
-      container.innerHTML = '<div class="text-center py-12"><p class="text-xl opacity-70">Loading chat...</p></div>';
-      setTimeout(() => {
-        openPublicChat();  // Inject the full chat UI
+      typingRef.onSnapshot((snapshot) => {
+        const typingUsers = [];
+        snapshot.forEach((doc) => {
+          if (doc.id !== user && doc.data().name) typingUsers.push(doc.data().name);
+        });
+        if (typingUsers.length > 0) {
+          typingIndicator.textContent = typingUsers.length === 1 
+            ? `${typingUsers[0]} is typing...` 
+            : typingUsers.length <= 3 
+              ? typingUsers.join(', ') + ' are typing...' 
+              : 'Several people are typing...';
+          typingIndicator.classList.remove('hidden');
+        } else {
+          typingIndicator.classList.add('hidden');
+        }
+      });
 
-        // Fix Back button
-        setTimeout(() => {
-          const backBtn = container.querySelector('button[onclick="goBackFromChat()"]');
-          if (backBtn) {
-            backBtn.textContent = "← Back to Dashboard";
-            backBtn.onclick = () => showTab('students');
-          }
-        }, 500);
-      }, 100);
+      loadChatMessages(isAdmin);
+
+      goBackFromChat = function() {
+        currentUserTypingRef.delete();
+        if (isTeacherView) showTab('students');
+        else startSubjectSelection();
+      };
     }
-  }
-}
 
-    async function toggleAdmin(studentId, name) {
-  if (!confirm(`Make ${name} an admin? They will be able to delete chat messages.`)) return;
-  
-  const adminRef = db.collection('admins').doc(studentId);
-  const snap = await adminRef.get();
-  
-  if (snap.exists) {
-    await adminRef.delete();
-    alert(`${name} is no longer admin.`);
-  } else {
-    await adminRef.set({ name: name, appointedAt: new Date() });
-    alert(`${name} is now an admin!`);
-  }
-}
-// Tab switching function
-function showTab(tab) {
-  document.getElementById('studentsTab').classList.toggle('hidden', tab !== 'students');
-  document.getElementById('resultsTab').classList.toggle('hidden', tab !== 'results');
+    function goBackFromChat() {
+      if (document.getElementById('teacherChatContainer')) {
+        showTab('students');
+      } else {
+        startSubjectSelection();
+      }
+    }
 
-  // Update button styles
-  document.getElementById('tabStudents').classList.toggle('bg-purple-700', tab === 'students');
-  document.getElementById('tabStudents').classList.toggle('bg-purple-600', tab !== 'students');
-  document.getElementById('tabResults').classList.toggle('bg-purple-700', tab === 'results');
-  document.getElementById('tabResults').classList.toggle('bg-purple-600', tab !== 'results');
-}
+    function loadChatMessages(isAdmin) {
+      const isMainTeacher = user === TEACHER_UID;
+      db.collection('publicChat')
+        .orderBy('pinned', 'desc')
+        .orderBy('timestamp', 'asc')
+        .onSnapshot((snapshot) => {
+          const messagesDiv = document.getElementById('chatMessages');
+          if (snapshot.empty) {
+            messagesDiv.innerHTML = '<p class="text-center opacity-70">No messages yet. Start the discussion!</p>';
+            return;
+          }
+
+          messagesDiv.innerHTML = snapshot.docs.map(doc => {
+            const m = doc.data();
+            const messageId = doc.id;
+            let senderLine = `<div class="font-bold text-purple-300">${m.senderName}`;
+            if (m.senderClass) senderLine += ` <span class="text-xs opacity-70">(${m.senderClass})</span>`;
+            if (m.senderName === "Master Timothy") senderLine += ` <span class="text-xs opacity-70 ml-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-2 py-1 rounded-full font-bold">★ Master ★</span>`;
+            senderLine += `</div>`;
+
+            const pinnedLabel = m.pinned ? '<div class="text-yellow-400 text-xs font-bold mb-2 tracking-wider">📌 PINNED ANNOUNCEMENT</div>' : '';
+
+            return `
+              <div class="glass-dark p-4 rounded-xl text-left relative ${m.senderName === 'Master Timothy' ? 'bg-gradient-to-br from-yellow-900/30 to-orange-900/30 border border-yellow-600 shadow-lg' : ''}">
+                ${isMainTeacher && m.senderName === "Master Timothy" ? `
+                  <button onclick="pinMessage('${messageId}')" class="absolute top-3 left-3 text-yellow-300 text-2xl hover:scale-125 transition">📌</button>
+                ` : ''}
+                ${isAdmin ? `
+                  <button onclick="deleteMessage('${messageId}')" class="absolute top-3 right-3 text-red-400 text-2xl hover:scale-125 transition">×</button>
+                ` : ''}
+                ${pinnedLabel}
+                ${senderLine}
+                <p class="mt-2 whitespace-pre-wrap">${m.text || ''}</p>
+                <p class="text-xs opacity-60 mt-3">${m.timestamp ? new Date(m.timestamp.toDate()).toLocaleString() : 'Just now'}</p>
+              </div>`;
+          }).join('');
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      let senderName = studentData?.name || "Student";
+      let senderClass = studentData?.class || "";
+
+      if (user === TEACHER_UID) {
+        senderName = "Master Timothy";
+        senderClass = "";
+      }
+
+      await db.collection('publicChat').add({
+        senderName,
+        senderClass,
+        text,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      input.value = '';
+    }
+
+    async function deleteMessage(id) {
+      if (confirm("Delete this message?")) {
+        await db.collection('publicChat').doc(id).delete();
+      }
+    }
+
+    async function pinMessage(id) {
+      if (user !== TEACHER_UID) return;
+      const ref = db.collection('publicChat').doc(id);
+      const snap = await ref.get();
+      if (snap.exists && snap.data().senderName === "Master Timothy") {
+        await ref.update({ pinned: !snap.data().pinned });
+      }
+    }
+
+    async function toggleChatLock() {
+      if (!confirm("Toggle chat lock?")) return;
+      const ref = db.collection('chatSettings').doc('lock');
+      const snap = await ref.get();
+      if (snap.exists) {
+        await ref.delete();
+      } else {
+        await ref.set({ isLocked: true });
+      }
+      openPublicChat();
+    }
+
+    function loadTeacherDashboard() {
+      const content = document.getElementById('teacherContent');
+      content.innerHTML = `
+        <h2 class="text-3xl font-bold mb-8 text-center">Teacher Dashboard</h2>
+        <div class="flex justify-center mb-8 gap-4 flex-wrap">
+          <button id="tabStudents" class="btn text-xl px-8 py-4" onclick="showTab('students')">Registered Students</button>
+          <button id="tabResults" class="btn text-xl px-8 py-4" onclick="showTab('results')">Exam Results</button>
+          <button id="tabChat" class="btn text-xl px-8 py-4 bg-green-600 hover:bg-green-700" onclick="showTab('chat')">Public Discussion Chat</button>
+        </div>
+
+        <div id="studentsTab" class="block">
+          <div class="flex justify-between items-center mb-6 px-4">
+            <h3 class="text-2xl font-bold">Registered Students (Roll Call)</h3>
+            <button onclick="location.reload()" class="btn bg-blue-600 hover:bg-blue-700 text-lg px-6">Refresh List</button>
+          </div>
+          <div id="studentList" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <p class="text-center opacity-70 col-span-full">Loading students...</p>
+          </div>
+        </div>
+
+        <div id="resultsTab" class="hidden">
+          <h3 class="text-2xl font-bold mb-6 text-center">Submitted Exam Results</h3>
+          <div id="resultsList" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <p class="text-center opacity-70 col-span-full">Loading results...</p>
+          </div>
+        </div>
+
+        <div id="chatTab" class="hidden">
+          <div id="teacherChatContainer" class="max-w-5xl mx-auto mt-8"></div>
+        </div>
+      `;
+
+      showTab('students');
+
+      db.collection('students').onSnapshot(async (snapshot) => {
+        const list = document.getElementById('studentList');
+        if (snapshot.empty) {
+          list.innerHTML = '<p class="text-center opacity-70 col-span-full text-2xl">No students registered yet</p>';
+          return;
+        }
+
+        const cards = [];
+        for (const doc of snapshot.docs) {
+          const s = doc.data();
+          const regDate = s.createdAt ? new Date(s.createdAt.toDate()).toLocaleDateString() : '—';
+          const adminSnap = await db.collection('admins').doc(doc.id).get();
+          const isAdmin = adminSnap.exists;
+
+          cards.push(`
+            <div class="glass-dark p-6 rounded-2xl text-center relative">
+              <button onclick="deleteStudent('${doc.id}')" class="absolute top-4 left-4 text-red-400 text-2xl hover:scale-110 transition">×</button>
+              ${doc.id !== TEACHER_UID ? `
+                <button onclick="toggleAdmin('${doc.id}', '${s.name || 'this student'}')" class="absolute top-4 right-4 text-yellow-400 text-lg hover:scale-110">
+                  ${isAdmin ? '★ Admin' : '☆ Make Admin'}
+                </button>
+              ` : ''}
+              <div class="font-bold text-xl mb-2">${s.name || 'No Name'}</div>
+              <div class="text-sm opacity-90">Class: ${s.class || '—'}</div>
+              <div class="text-sm opacity-90 mb-3">School: ${s.school || '—'}</div>
+              <div class="text-xs opacity-80 break-all">Email: ${s.email || '—'}</div>
+              <div class="text-xs opacity-70 mt-4">Joined: ${regDate}</div>
+            </div>`);
+        }
+        list.innerHTML = cards.join('');
+      });
+
+      db.collection('results').orderBy('timestamp', 'desc').onSnapshot((snapshot) => {
+        const list = document.getElementById('resultsList');
+        if (snapshot.empty) {
+          list.innerHTML = '<p class="text-center opacity-70 col-span-full text-2xl">No exam results submitted yet</p>';
+          return;
+        }
+
+        list.innerHTML = snapshot.docs.map(doc => {
+          const r = doc.data();
+          return `
+            <div class="glass-dark p-6 rounded-2xl relative">
+              <button onclick="deleteResult('${doc.id}')" class="absolute top-4 right-4 text-red-400 text-2xl hover:scale-110">×</button>
+              <div class="font-bold text-xl">${r.name || 'Unknown'}</div>
+              <div class="text-sm opacity-80">${r.class} • ${r.school}</div>
+              <div class="text-sm opacity-70 mt-2">${r.timestamp ? new Date(r.timestamp.toDate()).toLocaleString() : 'Just now'}</div>
+              ${r.subjects.map(s => `<div class="mt-3"><b>${s}:</b> ${r.correctAnswers[s]}/40 (${r.scores[s]}%)</div>`).join('')}
+              <div class="mt-6 text-center text-4xl font-bold">${r.percentage}% → Grade ${r.grade}</div>
+            </div>`;
+        }).join('');
+      });
+    }
+
+    function showTab(tab) {
+      document.getElementById('studentsTab').classList.toggle('hidden', tab !== 'students');
+      document.getElementById('resultsTab').classList.toggle('hidden', tab !== 'results');
+      document.getElementById('chatTab').classList.toggle('hidden', tab !== 'chat');
+
+      document.getElementById('tabStudents').classList.toggle('bg-purple-700', tab === 'students');
+      document.getElementById('tabStudents').classList.toggle('bg-purple-600', tab !== 'students');
+      document.getElementById('tabResults').classList.toggle('bg-purple-700', tab === 'results');
+      document.getElementById('tabResults').classList.toggle('bg-purple-600', tab !== 'results');
+      document.getElementById('tabChat').classList.toggle('bg-green-700', tab === 'chat');
+      document.getElementById('tabChat').classList.toggle('bg-green-600', tab !== 'chat');
+
+      if (tab === 'chat') {
+        const container = document.getElementById('teacherChatContainer');
+        if (container && container.innerHTML.trim() === '') {
+          container.innerHTML = '<div class="text-center py-12"><p class="text-xl opacity-70">Loading chat...</p></div>';
+          setTimeout(() => openPublicChat(), 100);
+        }
+      }
+    }
+
+    async function toggleAdmin(id, name) {
+      if (!confirm(`Make ${name} an admin?`)) return;
+      const ref = db.collection('admins').doc(id);
+      const snap = await ref.get();
+      if (snap.exists) await ref.delete();
+      else await ref.set({});
+    }
+
+    function deleteStudent(id) {
+      if (confirm("Permanently delete this student?")) {
+        db.collection('students').doc(id).delete();
+      }
+    }
+
+    function deleteResult(id) {
+      if (confirm("Delete this result?")) {
+        db.collection('results').doc(id).delete();
+      }
+    }
 
     async function teacherLogout() {
-  await auth.signOut();
-  user = null;
-  render();
-}
-    function deleteStudent(studentId) {
-  if (confirm("Permanently delete this student?\nThis will remove their profile. Exam results must be deleted separately.")) {
-    db.collection('students').doc(studentId).delete()
-      .then(() => {
-        console.log("Student deleted successfully");
-        // No need to refresh — real-time listener will update automatically
-      })
-      .catch((error) => {
-        alert("Error deleting student: " + error.message);
-      });
-  }
-}
-    function deleteResult(id) {
-      if (confirm("Delete this result permanently?")) db.collection('results').doc(id).delete();
+      await auth.signOut();
     }
 
     render();
