@@ -4392,7 +4392,7 @@ async function toggleChatLock() {
       <button id="tabChat" class="btn text-xl px-8 py-4 bg-green-600 hover:bg-green-700" onclick="showTab('chat')">Public Discussion Chat</button>
     </div>
 
-    <!-- Students Tab Content -->
+    <!-- Students Tab -->
     <div id="studentsTab" class="block">
       <div class="flex justify-between items-center mb-6 px-4">
         <h3 class="text-2xl font-bold">Registered Students (Roll Call)</h3>
@@ -4403,7 +4403,7 @@ async function toggleChatLock() {
       </div>
     </div>
 
-    <!-- Results Tab Content -->
+    <!-- Results Tab -->
     <div id="resultsTab" class="hidden">
       <h3 class="text-2xl font-bold mb-6 text-center">Submitted Exam Results</h3>
       <div id="resultsList" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -4411,114 +4411,116 @@ async function toggleChatLock() {
       </div>
     </div>
 
-    <!-- Public Chat Tab Content -->
+    <!-- Chat Tab - Dedicated Container -->
     <div id="chatTab" class="hidden">
-      <div id="teacherChatContainer" class="max-w-4xl mx-auto mt-8">
-        <!-- The openPublicChat() function will inject the full chat UI here -->
-        <div class="glass p-8 rounded-3xl text-center">
-          <p class="text-xl opacity-70">Loading Public Discussion Chat...</p>
+      <div id="teacherChatContainer" class="max-w-5xl mx-auto mt-8">
+        <div class="glass p-10 rounded-3xl text-center">
+          <p class="text-2xl mb-6 opacity-80">Public Discussion Chat</p>
+          <button onclick="loadTeacherChatView()" class="btn bg-green-600 hover:bg-green-700 text-xl px-12 py-6">
+            Open Chat
+          </button>
         </div>
       </div>
     </div>
   `;
 
-  // Default: show Students tab
+  // Default view: Students tab
   showTab('students');
 
-  // Load Registered Students + Admin Status
-  db.collection('students')
-    .onSnapshot(async (snapshot) => {
-      const list = document.getElementById('studentList');
-      if (snapshot.empty) {
-        list.innerHTML = '<p class="text-center opacity-70 col-span-full text-2xl">No students registered yet</p>';
-        return;
-      }
-
-      const studentCards = [];
-      for (const doc of snapshot.docs) {
-        const s = doc.data();
-        const regDate = s.createdAt ? new Date(s.createdAt.toDate()).toLocaleDateString() : '—';
-
-        const adminSnap = await db.collection('admins').doc(doc.id).get();
-        const isAdmin = adminSnap.exists;
-
-        studentCards.push(`
-          <div class="glass-dark p-6 rounded-2xl text-center relative">
-            <button onclick="deleteStudent('${doc.id}')" 
-                    class="absolute top-4 left-4 text-red-400 text-2xl hover:scale-110 transition">×</button>
-
-            ${doc.id !== TEACHER_UID ? `
-              <button onclick="toggleAdmin('${doc.id}', '${s.name || 'this student'}')" 
-                      class="absolute top-4 right-4 text-yellow-400 text-lg hover:scale-110">
-                ${isAdmin ? '★ Admin' : '☆ Make Admin'}
-              </button>
-            ` : ''}
-
-            <div class="font-bold text-xl mb-2">${s.name || 'No Name'}</div>
-            <div class="text-sm opacity-90">Class: ${s.class || '—'}</div>
-            <div class="text-sm opacity-90 mb-3">School: ${s.school || '—'}</div>
-            <div class="text-xs opacity-80 break-all">Email: ${s.email || '—'}</div>
-            <div class="text-xs opacity-70 mt-4">Joined: ${regDate}</div>
-          </div>`);
-      }
-
-      list.innerHTML = studentCards.join('');
-    }, (error) => {
-      console.error("Students listener error:", error);
-      document.getElementById('studentList').innerHTML = '<p class="text-center text-red-400">Connection issue. Refresh the page.</p>';
-    });
-
-  // Load Exam Results
-  db.collection('results').orderBy('timestamp', 'desc')
-    .onSnapshot((snapshot) => {
-      const resultsList = document.getElementById('resultsList');
-      if (snapshot.empty) {
-        resultsList.innerHTML = '<p class="text-center opacity-70 col-span-full text-2xl">No exam results submitted yet</p>';
-        return;
-      }
-
-      resultsList.innerHTML = snapshot.docs.map(doc => {
-        const r = doc.data();
-        return `
-          <div class="glass-dark p-6 rounded-2xl relative">
-            <button onclick="deleteResult('${doc.id}')" class="absolute top-4 right-4 text-red-400 text-2xl hover:scale-110">×</button>
-            <div class="font-bold text-xl">${r.name || 'Unknown'}</div>
-            <div class="text-sm opacity-80">${r.class} • ${r.school}</div>
-            <div class="text-sm opacity-70 mt-2">
-              ${r.timestamp ? new Date(r.timestamp.toDate()).toLocaleString() : 'Just now'}
-            </div>
-            ${r.subjects.map(s => `
-              <div class="mt-3"><b>${s}:</b> ${r.correctAnswers[s]}/40 (${r.scores[s]}%)</div>
-            `).join('')}
-            <div class="mt-6 text-center text-4xl font-bold">${r.percentage}% → Grade ${r.grade}</div>
-          </div>`;
-      }).join('');
-    });
-
-  // === NEW: Handle Chat Tab ===
-  // Override showTab temporarily to load the chat when needed
-  const originalShowTab = showTab;
-  showTab = function(tab) {
-    originalShowTab(tab);
-
-    if (tab === 'chat') {
-      // Clear previous content and load the full public chat
-      const container = document.getElementById('teacherChatContainer');
-      if (container) {
-        container.innerHTML = ''; // Clear loading message
-        openPublicChat(); // This will inject the full chat UI into #app
-
-        // Change the Back button in the chat to return to dashboard
-        setTimeout(() => {
-          const backButtons = document.querySelectorAll('button[onclick="startSubjectSelection()"]');
-          backButtons.forEach(btn => {
-            btn.textContent = 'Back to Dashboard';
-            btn.onclick = () => showTab('students');
-          });
-        }, 200);
-      }
+  // === Real-time Listeners (unchanged) ===
+  db.collection('students').onSnapshot(async (snapshot) => {
+    const list = document.getElementById('studentList');
+    if (snapshot.empty) {
+      list.innerHTML = '<p class="text-center opacity-70 col-span-full text-2xl">No students registered yet</p>';
+      return;
     }
-  };
+
+    const studentCards = [];
+    for (const doc of snapshot.docs) {
+      const s = doc.data();
+      const regDate = s.createdAt ? new Date(s.createdAt.toDate()).toLocaleDateString() : '—';
+      const adminSnap = await db.collection('admins').doc(doc.id).get();
+      const isAdmin = adminSnap.exists;
+
+      studentCards.push(`
+        <div class="glass-dark p-6 rounded-2xl text-center relative">
+          <button onclick="deleteStudent('${doc.id}')" 
+                  class="absolute top-4 left-4 text-red-400 text-2xl hover:scale-110 transition">×</button>
+
+          ${doc.id !== TEACHER_UID ? `
+            <button onclick="toggleAdmin('${doc.id}', '${s.name || 'this student'}')" 
+                    class="absolute top-4 right-4 text-yellow-400 text-lg hover:scale-110">
+              ${isAdmin ? '★ Admin' : '☆ Make Admin'}
+            </button>
+          ` : ''}
+
+          <div class="font-bold text-xl mb-2">${s.name || 'No Name'}</div>
+          <div class="text-sm opacity-90">Class: ${s.class || '—'}</div>
+          <div class="text-sm opacity-90 mb-3">School: ${s.school || '—'}</div>
+          <div class="text-xs opacity-80 break-all">Email: ${s.email || '—'}</div>
+          <div class="text-xs opacity-70 mt-4">Joined: ${regDate}</div>
+        </div>`);
+    }
+    list.innerHTML = studentCards.join('');
+  });
+
+  db.collection('results').orderBy('timestamp', 'desc').onSnapshot((snapshot) => {
+    const resultsList = document.getElementById('resultsList');
+    if (snapshot.empty) {
+      resultsList.innerHTML = '<p class="text-center opacity-70 col-span-full text-2xl">No exam results submitted yet</p>';
+      return;
+    }
+
+    resultsList.innerHTML = snapshot.docs.map(doc => {
+      const r = doc.data();
+      return `
+        <div class="glass-dark p-6 rounded-2xl relative">
+          <button onclick="deleteResult('${doc.id}')" class="absolute top-4 right-4 text-red-400 text-2xl hover:scale-110">×</button>
+          <div class="font-bold text-xl">${r.name || 'Unknown'}</div>
+          <div class="text-sm opacity-80">${r.class} • ${r.school}</div>
+          <div class="text-sm opacity-70 mt-2">
+            ${r.timestamp ? new Date(r.timestamp.toDate()).toLocaleString() : 'Just now'}
+          </div>
+          ${r.subjects.map(s => `
+            <div class="mt-3"><b>${s}:</b> ${r.correctAnswers[s]}/40 (${r.scores[s]}%)</div>
+          `).join('')}
+          <div class="mt-6 text-center text-4xl font-bold">${r.percentage}% → Grade ${r.grade}</div>
+        </div>`;
+    }).join('');
+  });
+}
+
+// === New Helper: Load Chat Inside Teacher Dashboard ===
+function loadTeacherChatView() {
+  const container = document.getElementById('teacherChatContainer');
+  if (!container) return;
+
+  container.innerHTML = ''; // Clear the "Open Chat" button
+  openPublicChat(); // This renders the full chat UI directly into teacherChatContainer
+
+  // Fix the Back button to return to dashboard tabs
+  setTimeout(() => {
+    const backBtn = container.querySelector('button[onclick="goBackFromChat()"]');
+    if (backBtn) {
+      backBtn.textContent = "← Back to Dashboard";
+      backBtn.onclick = () => showTab('students');
+    }
+  }, 300);
+}
+
+// === Updated showTab (clean and safe) ===
+function showTab(tab) {
+  document.getElementById('studentsTab').classList.toggle('hidden', tab !== 'students');
+  document.getElementById('resultsTab').classList.toggle('hidden', tab !== 'results');
+  document.getElementById('chatTab').classList.toggle('hidden', tab !== 'chat');
+
+  // Active tab styling
+  document.getElementById('tabStudents').classList.toggle('bg-purple-700', tab === 'students');
+  document.getElementById('tabStudents').classList.toggle('bg-purple-600', tab !== 'students');
+  document.getElementById('tabResults').classList.toggle('bg-purple-700', tab === 'results');
+  document.getElementById('tabResults').classList.toggle('bg-purple-600', tab !== 'results');
+  document.getElementById('tabChat').classList.toggle('bg-green-700', tab === 'chat');
+  document.getElementById('tabChat').classList.toggle('bg-green-600', tab !== 'chat');
 }
 
     async function toggleAdmin(studentId, name) {
