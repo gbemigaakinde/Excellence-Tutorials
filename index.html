@@ -3805,6 +3805,7 @@ auth.onAuthStateChanged(async (firebaseUser) => {
       const ongoingSnap = await db.collection('ongoingExams').doc(user).get();
       if (ongoingSnap.exists) {
         exam = ongoingSnap.data();
+        exam.startTime = exam.startTime.toDate(); // Convert Firestore timestamp to JS Date
         startTimer();
         renderExam();
       } else {
@@ -3926,28 +3927,45 @@ auth.onAuthStateChanged(async (firebaseUser) => {
       });
     }
 
-    function startTimer() {
+        function startTimer() {
       if (timerInterval) clearInterval(timerInterval);
 
       timerInterval = setInterval(() => {
-        const elapsed = new Date() - new Date(exam.startTime);
-        const remaining = exam.duration - elapsed;
+        const now = new Date();
+        let startTime;
+        try {
+          startTime = exam.startTime instanceof Date ? exam.startTime : exam.startTime.toDate();
+        } catch (e) {
+          console.error("Invalid startTime:", exam.startTime);
+          clearInterval(timerInterval);
+          alert("Timer error. Please refresh or contact teacher.");
+          return;
+        }
+
+        const elapsed = now - startTime;
+        let remaining = exam.duration - elapsed;
 
         if (remaining <= 0) {
+          remaining = 0;
           clearInterval(timerInterval);
-          alert("Time's up! Exam submitted automatically.");
+          alert("Time is up! Your exam has been submitted automatically.");
           submitExam();
           return;
         }
 
-        const hours = Math.floor(remaining / 3600000).toString().padStart(2, '0');
-        const mins = Math.floor((remaining % 3600000) / 60000).toString().padStart(2, '0');
-        const secs = Math.floor((remaining % 60000) / 1000).toString().padStart(2, '0');
+        const hours = String(Math.floor(remaining / 3600000)).padStart(2, '0');
+        const mins = String(Math.floor((remaining % 3600000) / 60000)).padStart(2, '0');
+        const secs = String(Math.floor((remaining % 60000) / 1000)).padStart(2, '0');
 
         const timerEl = document.getElementById('timer');
         if (timerEl) {
           timerEl.textContent = `${hours}:${mins}:${secs}`;
-          if (remaining < 600000) timerEl.classList.add('animate-pulse');
+
+          if (remaining < 600000) { // less than 10 minutes
+            timerEl.classList.add('animate-pulse', 'text-red-400');
+          } else {
+            timerEl.classList.remove('animate-pulse', 'text-red-400');
+          }
         }
       }, 1000);
     }
@@ -3972,55 +3990,67 @@ auth.onAuthStateChanged(async (firebaseUser) => {
       }
     }
 
-    async function submitExam() {
-      if (!confirm("Submit exam now? You cannot change answers after submission.")) return;
+        async function submitExam() {
+      if (!confirm("Submit your exam now? You cannot change answers after this.")) return;
 
       clearInterval(timerInterval);
 
-      const results = {
-        name: studentData.name,
-        class: studentData.class,
-        school: studentData.school,
-        subjects: exam.subjects,
-        correctAnswers: {},
-        scores: {},
-        percentage: 0,
-        grade: '',
-        timestamp: new Date()
-      };
+      const sendBtn = document.querySelector('button[onclick="submitExam()"]');
+      if (sendBtn) setButtonLoading(sendBtn);
 
-      let totalCorrect = 0;
-      let totalQuestions = 0;
+      try {
+        const results = {
+          name: studentData.name,
+          class: studentData.class,
+          school: studentData.school,
+          subjects: exam.subjects,
+          correctAnswers: {},
+          scores: {},
+          percentage: 0,
+          grade: '',
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        };
 
-      exam.subjects.forEach(subj => {
-        const qList = exam.questions[subj];
-        let correct = 0;
-        qList.forEach((q, i) => {
-          if (exam.answers[`${subj}-${i}`] == q.ans) correct++;
-        });
-        results.correctAnswers[subj] = correct;
-        results.scores[subj] = Math.round((correct / qList.length) * 100);
-        totalCorrect += correct;
-        totalQuestions += qList.length;
-      });
+        let totalCorrect = 0;
+        let totalQuestions = 0;
 
-      results.percentage = Math.round((totalCorrect / totalQuestions) * 100);
+        for (const subj of exam.subjects) {
+          const qList = exam.questions[subj];
+          let correct = 0;
+          qList.forEach((q, i) => {
+            if (exam.answers[`${subj}-${i}`] == q.ans) correct++;
+          });
+          results.correctAnswers[subj] = correct;
+          results.scores[subj] = Math.round((correct / qList.length) * 100);
+          totalCorrect += correct;
+          totalQuestions += qList.length;
+        }
 
-      // Simple grading
-      if (results.percentage >= 90) results.grade = 'A';
-      else if (results.percentage >= 80) results.grade = 'B';
-      else if (results.percentage >= 70) results.grade = 'C';
-      else if (results.percentage >= 60) results.grade = 'D';
-      else results.grade = 'F';
+        results.percentage = Math.round((totalCorrect / totalQuestions) * 100);
 
-      // Save result
-      await db.collection('results').add(results);
+        if (results.percentage >= 90) results.grade = 'A';
+        else if (results.percentage >= 80) results.grade = 'B';
+        else if (results.percentage >= 70) results.grade = 'C';
+        else if (results.percentage >= 60) results.grade = 'D';
+        else results.grade = 'F';
 
-      // Clean up ongoing exam
-      await db.collection('ongoingExams').doc(user).delete();
+        // Save result
+        await db.collection('results').add(results);
 
-      alert(`Exam submitted! Overall: ${results.percentage}% - Grade ${results.grade}`);
-      startSubjectSelection();
+        // Delete ongoing exam
+        await db.collection('ongoingExams').doc(user).delete();
+
+        alert(`Exam submitted successfully!\n\nOverall Score: ${results.percentage}%\nGrade: ${results.grade}\n\nYou can now start a new exam.`);
+
+        exam = null;  // Clear exam completely
+        startSubjectSelection();
+
+      } catch (err) {
+        console.error("Submission error:", err);
+        alert("Failed to submit exam. Check your internet connection or contact the teacher.\nError: " + err.message);
+      } finally {
+        if (sendBtn) setButtonLoading(sendBtn, false);
+      }
     }
     
 function toggleSubject(cb) {
@@ -4196,15 +4226,15 @@ function toggleSubject(cb) {
       }
     }
 
-        function loadChatMessages(isAdminOverride = false) {
+            function loadChatMessages(isAdminOverride = false) {
       const isMainTeacher = user === TEACHER_UID;
       const showAdminControls = isMainTeacher || isAdminOverride;
 
       db.collection('publicChat')
-        .orderBy('pinned', 'desc')
-        .orderBy('timestamp', 'asc')
+        .orderBy('timestamp', 'asc')  // Primary sort by time
         .onSnapshot((snapshot) => {
-          const messagesDiv = document.getElementById('chatMessages') || document.querySelector('#teacherChatContainer #chatMessages');
+          const messagesDiv = document.getElementById('chatMessages') || 
+                              document.querySelector('#teacherChatContainer #chatMessages');
           if (!messagesDiv) return;
 
           if (snapshot.empty) {
@@ -4212,18 +4242,42 @@ function toggleSubject(cb) {
             return;
           }
 
-          messagesDiv.innerHTML = snapshot.docs.map(doc => {
+          // Get all docs and manually sort: pinned first, then by timestamp
+          let docs = snapshot.docs;
+
+          docs.sort((a, b) => {
+            const aData = a.data();
+            const bData = b.data();
+
+            // Pinned messages always on top
+            const aPinned = aData.pinned === true ? 1 : 0;
+            const bPinned = bData.pinned === true ? 1 : 0;
+            if (aPinned !== bPinned) {
+              return bPinned - aPinned;  // Higher pinned value comes first
+            }
+
+            // Then sort by timestamp (oldest to newest)
+            const aTime = aData.timestamp ? aData.timestamp.toMillis() : 0;
+            const bTime = bData.timestamp ? bData.timestamp.toMillis() : 0;
+            return aTime - bTime;
+          });
+
+          // Build HTML from sorted docs
+          messagesDiv.innerHTML = docs.map(doc => {
             const m = doc.data();
             const messageId = doc.id;
 
             let senderLine = `<div class="font-bold text-purple-300">${m.senderName || 'Unknown'}`;
-            if (m.senderClass) senderLine += ` <span class="text-xs opacity-70">(${m.senderClass})</span>`;
+            if (m.senderClass) {
+              senderLine += ` <span class="text-xs opacity-70">(${m.senderClass})</span>`;
+            }
             if (m.senderName === "Master Timothy") {
               senderLine += ` <span class="text-xs opacity-70 ml-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-2 py-1 rounded-full font-bold">★ Master ★</span>`;
             }
             senderLine += `</div>`;
 
-            const pinnedLabel = m.pinned ? '<div class="text-yellow-400 text-xs font-bold mb-2 tracking-wider">📌 PINNED ANNOUNCEMENT</div>' : '';
+            const pinnedLabel = m.pinned ? 
+              '<div class="text-yellow-400 text-xs font-bold mb-2 tracking-wider">📌 PINNED ANNOUNCEMENT</div>' : '';
 
             return `
               <div class="glass-dark p-4 rounded-xl text-left relative ${m.senderName === 'Master Timothy' ? 'bg-gradient-to-br from-yellow-900/30 to-orange-900/30 border border-yellow-600 shadow-lg' : ''}">
@@ -4236,18 +4290,24 @@ function toggleSubject(cb) {
                 ${pinnedLabel}
                 ${senderLine}
                 <p class="mt-2 whitespace-pre-wrap">${m.text || ''}</p>
-                <p class="text-xs opacity-60 mt-3">${m.timestamp ? new Date(m.timestamp.toDate()).toLocaleString() : 'Just now'}</p>
+                <p class="text-xs opacity-60 mt-3">
+                  ${m.timestamp ? new Date(m.timestamp.toDate()).toLocaleString() : 'Just now'}
+                </p>
               </div>`;
           }).join('');
 
+          // Auto-scroll to bottom
           messagesDiv.scrollTop = messagesDiv.scrollHeight;
         });
     }
 
-    async function sendMessage() {
+       async function sendMessage() {
       const input = document.getElementById('chatInput');
       const text = input.value.trim();
       if (!text) return;
+
+      const sendBtn = document.querySelector('button[onclick="sendMessage()"]');
+      setButtonLoading(sendBtn);
 
       let senderName = studentData?.name || "Student";
       let senderClass = studentData?.class || "";
@@ -4257,14 +4317,21 @@ function toggleSubject(cb) {
         senderClass = "";
       }
 
-      await db.collection('publicChat').add({
-        senderName,
-        senderClass,
-        text,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      input.value = '';
+      try {
+        await db.collection('publicChat').add({
+          senderName,
+          senderClass,
+          text,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          pinned: false
+        });
+        input.value = '';
+      } catch (err) {
+        alert("Failed to send message. Check your connection.");
+        console.error(err);
+      } finally {
+        setButtonLoading(sendBtn, false);
+      }
     }
 
     async function deleteMessage(id) {
