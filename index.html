@@ -3791,17 +3791,46 @@ auth.onAuthStateChanged(async (firebaseUser) => {
       }
     }
 
-    function startSubjectSelection() {
-      document.getElementById('app').innerHTML = `
-        <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
-          <h1 class="text-4xl font-bold mb-8">Welcome, ${studentData.name}!</h1>
-          <p>Class: ${studentData.class} • School: ${studentData.school}</p>
-          <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700 text-xl px-12 py-4 my-8">Public Discussion Chat</button>
-          <p class="text-xl mb-8">No exam started yet. Contact your teacher to begin.</p>
-          <button onclick="auth.signOut()" class="btn text-xl">Logout</button>
-        </div>`;
-    }
+    async function startSubjectSelection() {
+  const classKey = studentData.class.toLowerCase().replace(/ /g, '');
+  const available = questions[classKey] ? Object.keys(questions[classKey]) : [];
 
+  document.getElementById('app').innerHTML = `
+    <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
+      <h1 class="text-4xl font-bold mb-8">Welcome, ${studentData.name}!</h1>
+      <p>Class: ${studentData.class} • School: ${studentData.school}</p>
+
+      <!-- Public Discussion Chat Button -->
+      <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700 text-xl px-12 py-4 my-8">
+        Public Discussion Chat
+      </button>
+
+      <p class="text-xl mb-8">Select at least 2 subjects for exam</p>
+      ${available.length === 0 
+        ? '<p class="text-red-400 text-2xl">No subjects available for your class. Contact teacher.</p>' 
+        : `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            ${available.map(s => `
+              <label class="glass p-6 rounded-xl cursor-pointer hover:scale-105 transition">
+                <input type="checkbox" value="${s}" onchange="toggleSubject(this)"> ${s}
+              </label>`).join('')}
+          </div>
+          <button onclick="startExam()" id="startBtn" disabled class="btn text-xl px-12 mt-4">Start Exam</button>`
+      }
+      <button onclick="auth.signOut()" class="mt-8 block mx-auto text-sm opacity-70">Logout</button>
+    </div>`;
+
+  exam = { step: 'subjects', chosen: [] };
+}
+
+function toggleSubject(cb) {
+  if (cb.checked) {
+    exam.chosen.push(cb.value);
+  } else {
+    exam.chosen = exam.chosen.filter(x => x !== cb.value);
+  }
+  const startBtn = document.getElementById('startBtn');
+  if (startBtn) startBtn.disabled = exam.chosen.length < 2;
+}
     async function openPublicChat() {
       const isTeacherView = !!document.getElementById('teacherChatContainer');
       const container = isTeacherView ? document.getElementById('teacherChatContainer') : document.getElementById('app');
