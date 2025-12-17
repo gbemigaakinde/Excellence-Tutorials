@@ -4171,16 +4171,32 @@ function loadChatMessages(isAdmin) {
 
       messagesDiv.innerHTML = snapshot.docs.map(doc => {
         const m = doc.data();
+
+        // Determine how to display the sender line
+        let senderLine = `<div class="font-bold text-purple-300">${m.senderName}`;
+        
+        if (m.senderClass) {
+          // Normal students: show class in parentheses
+          senderLine += ` <span class="text-xs opacity-70">(${m.senderClass})</span>`;
+        } else if (m.senderName === "Master Timothy") {
+          // Special badge for Master Timothy
+          senderLine += ` <span class="text-xs opacity-70 ml-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-2 py-1 rounded-full font-bold">★ Master ★</span>`;
+        }
+        
+        senderLine += `</div>`;
+
         return `
           <div class="glass-dark p-4 rounded-xl text-left relative">
             ${isAdmin ? `
               <button onclick="deleteMessage('${doc.id}')" class="absolute top-2 right-2 text-red-400 text-xl hover:scale-110">×</button>
             ` : ''}
-            <div class="font-bold text-purple-300">${m.senderName} <span class="text-xs opacity-70">(${m.senderClass})</span></div>
+            ${senderLine}
             <p class="mt-2">${m.text || ''}</p>
             <p class="text-xs opacity-60 mt-2">${m.timestamp ? new Date(m.timestamp.toDate()).toLocaleString() : 'Just now'}</p>
           </div>`;
       }).join('');
+
+      // Auto-scroll to bottom
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     });
 }
@@ -4190,9 +4206,19 @@ async function sendMessage() {
   const text = input.value.trim();
   if (!text) return;
 
+  // Determine sender name and class/tag
+  let senderName = studentData.name;
+  let senderClass = studentData.class;
+
+  // Special handling for the main teacher
+  if (user === TEACHER_UID) {
+    senderName = "Master Timothy";     // Your special display name
+    senderClass = "";                   // Hide class, or set to something like "Teacher" if you want
+  }
+
   await db.collection('publicChat').add({
-    senderName: studentData.name,
-    senderClass: studentData.class,
+    senderName: senderName,
+    senderClass: senderClass,             // Will be empty for you → no class shown
     text: text,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   });
@@ -4233,9 +4259,10 @@ async function toggleChatLock() {
     <h2 class="text-3xl font-bold mb-8 text-center">Teacher Dashboard</h2>
 
     <!-- Tabs -->
-    <div class="flex justify-center mb-8 gap-4">
+    <div class="flex justify-center mb-8 gap-4 flex-wrap">
       <button id="tabStudents" class="btn text-xl px-8 py-4" onclick="showTab('students')">Registered Students</button>
       <button id="tabResults" class="btn text-xl px-8 py-4" onclick="showTab('results')">Exam Results</button>
+      <button id="tabChat" class="btn text-xl px-8 py-4 bg-green-600 hover:bg-green-700" onclick="showTab('chat')">Public Discussion Chat</button>
     </div>
 
     <!-- Students Tab Content -->
@@ -4256,12 +4283,22 @@ async function toggleChatLock() {
         <p class="text-center opacity-70 col-span-full">Loading results...</p>
       </div>
     </div>
+
+    <!-- Public Chat Tab Content -->
+    <div id="chatTab" class="hidden">
+      <div id="teacherChatContainer" class="max-w-4xl mx-auto mt-8">
+        <!-- The openPublicChat() function will inject the full chat UI here -->
+        <div class="glass p-8 rounded-3xl text-center">
+          <p class="text-xl opacity-70">Loading Public Discussion Chat...</p>
+        </div>
+      </div>
+    </div>
   `;
 
   // Default: show Students tab
   showTab('students');
 
-  // Load Registered Students + Check Admin Status
+  // Load Registered Students + Admin Status
   db.collection('students')
     .onSnapshot(async (snapshot) => {
       const list = document.getElementById('studentList');
@@ -4270,23 +4307,19 @@ async function toggleChatLock() {
         return;
       }
 
-      // Build the student cards
       const studentCards = [];
       for (const doc of snapshot.docs) {
         const s = doc.data();
         const regDate = s.createdAt ? new Date(s.createdAt.toDate()).toLocaleDateString() : '—';
 
-        // Check if this student is an admin
         const adminSnap = await db.collection('admins').doc(doc.id).get();
         const isAdmin = adminSnap.exists;
 
         studentCards.push(`
           <div class="glass-dark p-6 rounded-2xl text-center relative">
-            <!-- Delete Student Button -->
             <button onclick="deleteStudent('${doc.id}')" 
                     class="absolute top-4 left-4 text-red-400 text-2xl hover:scale-110 transition">×</button>
 
-            <!-- Make/Remove Admin Button (hidden for teacher) -->
             ${doc.id !== TEACHER_UID ? `
               <button onclick="toggleAdmin('${doc.id}', '${s.name || 'this student'}')" 
                       class="absolute top-4 right-4 text-yellow-400 text-lg hover:scale-110">
@@ -4308,7 +4341,7 @@ async function toggleChatLock() {
       document.getElementById('studentList').innerHTML = '<p class="text-center text-red-400">Connection issue. Refresh the page.</p>';
     });
 
-  // Load Exam Results (unchanged)
+  // Load Exam Results
   db.collection('results').orderBy('timestamp', 'desc')
     .onSnapshot((snapshot) => {
       const resultsList = document.getElementById('resultsList');
@@ -4334,6 +4367,31 @@ async function toggleChatLock() {
           </div>`;
       }).join('');
     });
+
+  // === NEW: Handle Chat Tab ===
+  // Override showTab temporarily to load the chat when needed
+  const originalShowTab = showTab;
+  showTab = function(tab) {
+    originalShowTab(tab);
+
+    if (tab === 'chat') {
+      // Clear previous content and load the full public chat
+      const container = document.getElementById('teacherChatContainer');
+      if (container) {
+        container.innerHTML = ''; // Clear loading message
+        openPublicChat(); // This will inject the full chat UI into #app
+
+        // Change the Back button in the chat to return to dashboard
+        setTimeout(() => {
+          const backButtons = document.querySelectorAll('button[onclick="startSubjectSelection()"]');
+          backButtons.forEach(btn => {
+            btn.textContent = 'Back to Dashboard';
+            btn.onclick = () => showTab('students');
+          });
+        }, 200);
+      }
+    }
+  };
 }
 
     async function toggleAdmin(studentId, name) {
