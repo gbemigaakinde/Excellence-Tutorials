@@ -4093,7 +4093,6 @@ async function register() {
     }
 
     async function openPublicChat() {
-  // Determine the container: teacher dashboard uses #teacherChatContainer, students use #app
   const isTeacherView = !!document.getElementById('teacherChatContainer');
   const container = isTeacherView ? document.getElementById('teacherChatContainer') : document.getElementById('app');
 
@@ -4106,12 +4105,10 @@ async function register() {
   const isAdminSnap = await db.collection('admins').doc(user).get();
   const isAdmin = isMainTeacher || isAdminSnap.exists;
 
-  // Get current lock state
   const lockRef = db.collection('chatSettings').doc('lock');
   const lockSnap = await lockRef.get();
   const isLocked = lockSnap.exists && lockSnap.data()?.isLocked === true;
 
-  // Render the full chat UI into the correct container
   container.innerHTML = `
     <div class="max-w-4xl mx-auto glass p-8 mt-8 rounded-3xl">
       <div class="flex justify-between items-center mb-6">
@@ -4119,28 +4116,25 @@ async function register() {
         <button onclick="goBackFromChat()" class="btn bg-gray-600 hover:bg-gray-700">Back</button>
       </div>
 
-      <!-- Lock Status -->
       ${isLocked ? `
         <div class="glass-dark p-4 rounded-xl mb-6 text-center bg-red-900/50 border border-red-500">
-          <p class="text-xl font-bold text-red-300">🔒 Chat is currently LOCKED</p>
+          <p class="text-xl font-bold text-red-300">Chat is currently LOCKED</p>
           <p class="text-sm opacity-90">No new messages can be sent until the teacher unlocks it.</p>
         </div>
       ` : `
         <div class="glass-dark p-4 rounded-xl mb-6 text-center bg-green-900/30 border border-green-500">
-          <p class="text-xl font-bold text-green-300">🔓 Chat is OPEN</p>
+          <p class="text-xl font-bold text-green-300">Chat is OPEN</p>
         </div>
       `}
 
-      <!-- Teacher Lock/Unlock Button -->
       ${isMainTeacher ? `
         <div class="text-center mb-6">
           <button onclick="toggleChatLock()" class="btn ${isLocked ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'} text-xl px-8">
-            ${isLocked ? '🔓 Unlock Chat' : '🔒 Lock Chat'}
+            ${isLocked ? 'Unlock Chat' : 'Lock Chat'}
           </button>
         </div>
       ` : ''}
 
-      <!-- Rules -->
       <div class="glass-dark p-4 rounded-xl mb-6 text-left text-sm">
         <p class="font-bold mb-2">Chat Rules:</p>
         <ul class="list-disc pl-6 space-y-1 opacity-90">
@@ -4156,10 +4150,8 @@ async function register() {
         <p class="text-center opacity-70">Loading messages...</p>
       </div>
 
-      <!-- Typing Indicator -->
       <div id="typingIndicator" class="text-sm opacity-70 italic text-center py-1 hidden"></div>
 
-      <!-- Send Area -->
       <div class="flex gap-4 ${isLocked && !isMainTeacher ? 'opacity-50' : ''}">
         <input id="chatInput" type="text" placeholder="${isLocked && !isMainTeacher ? 'Chat is locked' : 'Type your message...'}" 
                class="flex-1 p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" 
@@ -4169,7 +4161,7 @@ async function register() {
       </div>
     </div>`;
 
-  // === Typing Indicator Logic (unchanged - works perfectly) ===
+  // Typing indicator and message loading (unchanged from your working version)
   const typingRef = db.collection('typing');
   const currentUserTypingRef = typingRef.doc(user);
 
@@ -4212,17 +4204,16 @@ async function register() {
     }
   });
 
-  // Load messages (your existing loadChatMessages function - call it here)
   loadChatMessages(isAdmin);
 
-  // Clean up typing when leaving
+  // Clean up on back
   const originalGoBack = goBackFromChat;
   goBackFromChat = function() {
     currentUserTypingRef.delete();
     if (isTeacherView) {
-      showTab('students');  // Teacher returns to dashboard
+      showTab('students');
     } else {
-      originalGoBack();     // Student returns to subject selection
+      originalGoBack();
     }
   };
 }
