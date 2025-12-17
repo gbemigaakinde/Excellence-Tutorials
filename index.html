@@ -4043,11 +4043,13 @@ auth.onAuthStateChanged(async (firebaseUser) => {
 
     results.percentage = Math.round((totalCorrect / totalQuestions) * 100);
 
-    if (results.percentage >= 90) results.grade = 'A';
-    else if (results.percentage >= 80) results.grade = 'B';
-    else if (results.percentage >= 70) results.grade = 'C';
-    else if (results.percentage >= 60) results.grade = 'D';
-    else results.grade = 'F';
+    // === NEW GRADING LOGIC ===
+    if (results.percentage > 80) results.grade = 'A';
+    else if (results.percentage > 70) results.grade = 'B';
+    else if (results.percentage > 60) results.grade = 'C';
+    else if (results.percentage > 45) results.grade = 'D';
+    else results.grade = 'E';
+    // =========================
 
     // Save result to Firestore
     await db.collection('results').add(results);
@@ -4146,7 +4148,7 @@ auth.onAuthStateChanged(async (firebaseUser) => {
 
     // === SHARE & COPY FUNCTIONS ===
     window.shareWhatsApp = function() {
-      let text = `🎉 Excellence Tutorial Exam Result\n\n`;
+      let text = `This is my Excellence Tutorial CBT Report:\n\n`;
       text += `Name: ${results.name}\n`;
       text += `Class: ${results.class}\n`;
       text += `School: ${results.school}\n\n`;
@@ -4154,7 +4156,7 @@ auth.onAuthStateChanged(async (firebaseUser) => {
       exam.subjects.forEach(s => {
         text += `${s}: ${results.scores[s]}%\n`;
       });
-      text += `\nShared from Excellence CBT App ❤️`;
+      text += `\nShared from Excellence CBT App!`;
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     };
 
