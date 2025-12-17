@@ -3801,18 +3801,26 @@ auth.onAuthStateChanged(async (firebaseUser) => {
       }
     }
 
-    async function loadOrStartExam() {
+        async function loadOrStartExam() {
       const ongoingSnap = await db.collection('ongoingExams').doc(user).get();
+
       if (ongoingSnap.exists) {
         exam = ongoingSnap.data();
-        exam.startTime = exam.startTime.toDate(); // Convert Firestore timestamp to JS Date
+
+        // Critical: Convert Firestore server timestamp to JS Date
+        if (exam.startTime && exam.startTime.toDate) {
+          exam.startTime = exam.startTime.toDate();
+        } else {
+          // Fallback safety
+          exam.startTime = new Date();
+        }
+
         startTimer();
         renderExam();
       } else {
         startSubjectSelection();
       }
     }
-
     async function startSubjectSelection() {
   const classKey = studentData.class.toLowerCase().replace(/ /g, '');
   const available = questions[classKey] ? Object.keys(questions[classKey]) : [];
@@ -3844,7 +3852,7 @@ auth.onAuthStateChanged(async (firebaseUser) => {
   exam = { step: 'subjects', chosen: [] };
 }
 
-        async function startExam() {
+            async function startExam() {
       if (exam.chosen.length < 2) {
         alert("Please select at least 2 subjects.");
         return;
@@ -3854,8 +3862,14 @@ auth.onAuthStateChanged(async (firebaseUser) => {
       const selectedQuestions = {};
       let totalQuestions = 0;
 
+      const classKey = studentData.class.toLowerCase().replace(/ /g, '');
+
       exam.chosen.forEach(subject => {
-        const all = questions[studentData.class.toLowerCase().replace(/ /g, '')][subject];
+        const all = questions[classKey][subject];
+        if (!all || all.length === 0) {
+          alert(`No questions available for ${subject}. Contact teacher.`);
+          return;
+        }
         const shuffled = [...all].sort(() => 0.5 - Math.random());
         selectedQuestions[subject] = shuffled.slice(0, 40);
         totalQuestions += 40;
@@ -3868,15 +3882,20 @@ auth.onAuthStateChanged(async (firebaseUser) => {
         currentSubject: exam.chosen[0],
         currentIndex: 0,
         answers: {},
-        startTime: new Date(),
-        duration: 120 * 60 * 1000  // 2 hours in ms
+        startTime: firebase.firestore.FieldValue.serverTimestamp(),  // ← SERVER TIME (critical!)
+        duration: 120 * 60 * 1000  // 2 hours in milliseconds
       };
 
-      // Save to ongoingExams so it resumes if page reloads
-      await db.collection('ongoingExams').doc(user).set(exam);
+      try {
+        // Save to ongoingExams so it resumes if page reloads
+        await db.collection('ongoingExams').doc(user).set(exam);
 
-      startTimer();
-      renderExam();
+        startTimer();
+        renderExam();
+      } catch (err) {
+        console.error("Failed to start exam:", err);
+        alert("Failed to start exam. Check your internet connection.");
+      }
     }
 
         function renderExam() {
@@ -3927,27 +3946,22 @@ auth.onAuthStateChanged(async (firebaseUser) => {
       });
     }
 
-        function startTimer() {
+            function startTimer() {
       if (timerInterval) clearInterval(timerInterval);
 
       timerInterval = setInterval(() => {
         const now = new Date();
-        let startTime;
-        try {
-          startTime = exam.startTime instanceof Date ? exam.startTime : exam.startTime.toDate();
-        } catch (e) {
-          console.error("Invalid startTime:", exam.startTime);
-          clearInterval(timerInterval);
-          alert("Timer error. Please refresh or contact teacher.");
-          return;
-        }
-
-        const elapsed = now - startTime;
+        const start = exam.startTime;  // Already converted to Date object
+        const elapsed = now - start;
         let remaining = exam.duration - elapsed;
 
         if (remaining <= 0) {
           remaining = 0;
           clearInterval(timerInterval);
+
+          const timerEl = document.getElementById('timer');
+          if (timerEl) timerEl.textContent = '00:00:00';
+
           alert("Time is up! Your exam has been submitted automatically.");
           submitExam();
           return;
@@ -3961,7 +3975,8 @@ auth.onAuthStateChanged(async (firebaseUser) => {
         if (timerEl) {
           timerEl.textContent = `${hours}:${mins}:${secs}`;
 
-          if (remaining < 600000) { // less than 10 minutes
+          // Red pulse in last 10 minutes
+          if (remaining < 600000) {
             timerEl.classList.add('animate-pulse', 'text-red-400');
           } else {
             timerEl.classList.remove('animate-pulse', 'text-red-400');
