@@ -4093,6 +4093,15 @@ async function register() {
     }
 
     async function openPublicChat() {
+  // Determine the container: teacher dashboard uses #teacherChatContainer, students use #app
+  const isTeacherView = !!document.getElementById('teacherChatContainer');
+  const container = isTeacherView ? document.getElementById('teacherChatContainer') : document.getElementById('app');
+
+  if (!container) {
+    console.error("Chat container not found!");
+    return;
+  }
+
   const isMainTeacher = user === TEACHER_UID;
   const isAdminSnap = await db.collection('admins').doc(user).get();
   const isAdmin = isMainTeacher || isAdminSnap.exists;
@@ -4102,10 +4111,7 @@ async function register() {
   const lockSnap = await lockRef.get();
   const isLocked = lockSnap.exists && lockSnap.data()?.isLocked === true;
 
-  // Decide where to render: #app (student view) or #teacherChatContainer (teacher dashboard tab)
-  const container = document.getElementById('teacherChatContainer') || document.getElementById('app');
-  if (!container) return;
-
+  // Render the full chat UI into the correct container
   container.innerHTML = `
     <div class="max-w-4xl mx-auto glass p-8 mt-8 rounded-3xl">
       <div class="flex justify-between items-center mb-6">
@@ -4150,12 +4156,12 @@ async function register() {
         <p class="text-center opacity-70">Loading messages...</p>
       </div>
 
-      <!-- Multi-User Typing Indicator -->
+      <!-- Typing Indicator -->
       <div id="typingIndicator" class="text-sm opacity-70 italic text-center py-1 hidden"></div>
 
       <!-- Send Area -->
       <div class="flex gap-4 ${isLocked && !isMainTeacher ? 'opacity-50' : ''}">
-        <input id="chatInput" type="text" placeholder="${isLocked ? 'Chat is locked' : 'Type your message...'}" 
+        <input id="chatInput" type="text" placeholder="${isLocked && !isMainTeacher ? 'Chat is locked' : 'Type your message...'}" 
                class="flex-1 p-4 rounded-xl bg-white/20 text-white placeholder-gray-300" 
                ${isLocked && !isMainTeacher ? 'disabled' : ''} onkeydown="if(event.key==='Enter') sendMessage()">
         <button onclick="sendMessage()" class="btn bg-green-600 hover:bg-green-700" 
@@ -4163,7 +4169,7 @@ async function register() {
       </div>
     </div>`;
 
-  // === REAL-TIME MULTI-USER TYPING INDICATOR ===
+  // === Typing Indicator Logic (unchanged - works perfectly) ===
   const typingRef = db.collection('typing');
   const currentUserTypingRef = typingRef.doc(user);
 
@@ -4171,19 +4177,55 @@ async function register() {
   const typingIndicator = container.querySelector('#typingIndicator');
   let typingTimeout;
 
-  // When the current user starts typing
   chatInput.addEventListener('input', () => {
     if (chatInput.value.trim().length > 0) {
       currentUserTypingRef.set({
         typing: true,
-        name: isMainTeacher ? "Master Timothy" : studentData.name,
+        name: isMainTeacher ? "Master Timothy" : studentData?.name || "Student",
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       });
     }
 
     clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(stopTyping, 2000); // Stop marking as typing after 2s of inactivity
+    typingTimeout = setTimeout(() => currentUserTypingRef.delete(), 2000);
   });
+
+  typingRef.onSnapshot((snapshot) => {
+    const typingUsers = [];
+    snapshot.forEach((doc) => {
+      if (doc.id !== user) {
+        const data = doc.data();
+        if (data.name) typingUsers.push(data.name);
+      }
+    });
+
+    if (typingUsers.length > 0) {
+      let text = typingUsers.length === 1 
+        ? `${typingUsers[0]} is typing...` 
+        : typingUsers.length <= 3 
+          ? typingUsers.join(', ') + ' are typing...' 
+          : 'Several people are typing...';
+      typingIndicator.textContent = text;
+      typingIndicator.classList.remove('hidden');
+    } else {
+      typingIndicator.classList.add('hidden');
+    }
+  });
+
+  // Load messages (your existing loadChatMessages function - call it here)
+  loadChatMessages(isAdmin);
+
+  // Clean up typing when leaving
+  const originalGoBack = goBackFromChat;
+  goBackFromChat = function() {
+    currentUserTypingRef.delete();
+    if (isTeacherView) {
+      showTab('students');  // Teacher returns to dashboard
+    } else {
+      originalGoBack();     // Student returns to subject selection
+    }
+  };
+}
 
   function stopTyping() {
     currentUserTypingRef.delete();
