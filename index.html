@@ -4411,23 +4411,18 @@ async function toggleChatLock() {
       </div>
     </div>
 
-    <!-- Chat Tab - Dedicated Container -->
+    <!-- Chat Tab -->
     <div id="chatTab" class="hidden">
       <div id="teacherChatContainer" class="max-w-5xl mx-auto mt-8">
-        <div class="glass p-10 rounded-3xl text-center">
-          <p class="text-2xl mb-6 opacity-80">Public Discussion Chat</p>
-          <button onclick="loadTeacherChatView()" class="btn bg-green-600 hover:bg-green-700 text-xl px-12 py-6">
-            Open Chat
-          </button>
-        </div>
+        <!-- Chat will be injected here -->
       </div>
     </div>
   `;
 
-  // Default view: Students tab
+  // Show students tab by default
   showTab('students');
 
-  // === Real-time Listeners (unchanged) ===
+  // === Real-time listeners (your original code - unchanged) ===
   db.collection('students').onSnapshot(async (snapshot) => {
     const list = document.getElementById('studentList');
     if (snapshot.empty) {
@@ -4490,37 +4485,40 @@ async function toggleChatLock() {
   });
 }
 
-// === New Helper: Load Chat Inside Teacher Dashboard ===
-function loadTeacherChatView() {
-  const container = document.getElementById('teacherChatContainer');
-  if (!container) return;
-
-  container.innerHTML = ''; // Clear the "Open Chat" button
-  openPublicChat(); // This renders the full chat UI directly into teacherChatContainer
-
-  // Fix the Back button to return to dashboard tabs
-  setTimeout(() => {
-    const backBtn = container.querySelector('button[onclick="goBackFromChat()"]');
-    if (backBtn) {
-      backBtn.textContent = "← Back to Dashboard";
-      backBtn.onclick = () => showTab('students');
-    }
-  }, 300);
-}
-
-// === Updated showTab (clean and safe) ===
+// === Fixed: showTab now automatically loads chat when selected ===
 function showTab(tab) {
+  // Hide/show tabs
   document.getElementById('studentsTab').classList.toggle('hidden', tab !== 'students');
   document.getElementById('resultsTab').classList.toggle('hidden', tab !== 'results');
   document.getElementById('chatTab').classList.toggle('hidden', tab !== 'chat');
 
-  // Active tab styling
+  // Active button styling
   document.getElementById('tabStudents').classList.toggle('bg-purple-700', tab === 'students');
   document.getElementById('tabStudents').classList.toggle('bg-purple-600', tab !== 'students');
   document.getElementById('tabResults').classList.toggle('bg-purple-700', tab === 'results');
   document.getElementById('tabResults').classList.toggle('bg-purple-600', tab !== 'results');
   document.getElementById('tabChat').classList.toggle('bg-green-700', tab === 'chat');
   document.getElementById('tabChat').classList.toggle('bg-green-600', tab !== 'chat');
+
+  // === THIS IS THE KEY FIX: Load chat automatically when tab is clicked ===
+  if (tab === 'chat') {
+    const container = document.getElementById('teacherChatContainer');
+    if (container && container.innerHTML.trim() === '') {
+      container.innerHTML = '<div class="text-center py-12"><p class="text-xl opacity-70">Loading chat...</p></div>';
+      setTimeout(() => {
+        openPublicChat();  // Inject the full chat UI
+
+        // Fix Back button
+        setTimeout(() => {
+          const backBtn = container.querySelector('button[onclick="goBackFromChat()"]');
+          if (backBtn) {
+            backBtn.textContent = "← Back to Dashboard";
+            backBtn.onclick = () => showTab('students');
+          }
+        }, 500);
+      }, 100);
+    }
+  }
 }
 
     async function toggleAdmin(studentId, name) {
