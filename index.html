@@ -4182,13 +4182,13 @@ sss1: {
       <h1 class="text-6xl font-bold mb-8 text-green-600">Exam Completed!</h1>
 
       <div class="glass-dark p-10 rounded-2xl mb-8">
-        <p class="text-2xl mb-6">Click on each subject below to view your answers, correct answers, and explanations.</p>
         <div class="text-7xl font-extrabold ${result.grade === 'A' ? 'text-green-500' : result.grade === 'B' ? 'text-blue-500' : result.grade === 'C' ? 'text-yellow-600' : result.grade === 'D' ? 'text-orange-500' : 'text-red-500'}">
           ${result.percentage}% — Grade ${result.grade}
         </div>
       </div>
 
       <div class="space-y-8 mb-12">
+      <p class="text-2xl mb-6">Click on each subject below to view your answers, correct answers, and explanations.</p>
         ${exam.subjects.map(subj => {
           const qs = exam.questions[subj];
           return `
