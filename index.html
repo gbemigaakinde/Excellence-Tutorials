@@ -3937,40 +3937,21 @@ sss1: {
   const q = qList[exam.currentIndex];
   const progress = Math.round(((exam.currentIndex + 1) / qList.length) * 100);
 
-  // Calculate remaining time for color logic
-  const now = Date.now();
-  let startTimeMs = exam.startTime;
-  if (typeof exam.startTime.toDate === 'function') {
-    startTimeMs = exam.startTime.toDate().getTime();
-  } else if (exam.startTime instanceof Date) {
-    startTimeMs = exam.startTime.getTime();
-  } else if (typeof exam.startTime === 'object' && exam.startTime.seconds) {
-    startTimeMs = exam.startTime.seconds * 1000;
-  }
-  if (isNaN(startTimeMs)) startTimeMs = now;
-
-  const elapsed = now - startTimeMs;
-  const remaining = EXAM_DURATION_MS - elapsed;
-  const minutesLeft = Math.floor(remaining / 60000);
-
-  // Timer color: green if >20 min, yellow 10-20 min, red <10 min
-  const timerColor = minutesLeft > 20 ? 'text-green-500' : minutesLeft > 10 ? 'text-yellow-500' : 'text-red-500';
-
   document.getElementById('app').innerHTML = `
     <div class="max-w-4xl mx-auto p-4 flex flex-col min-h-screen">
       <!-- Main Exam Content -->
-      <div class="glass p-6 md:p-10 rounded-3xl flex-1">
+      <div class="glass p-6 md:p-8 rounded-3xl flex-1">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
           <h2 class="text-3xl md:text-4xl font-bold">${subj}</h2>
           <div class="text-center md:text-right">
-            <div id="timerDisplay" class="text-4xl md:text-5xl font-bold ${timerColor}">02:00:00</div>
+            <div id="timerDisplay" class="text-4xl md:text-5xl font-bold text-green-500">02:00:00</div>
             <div class="text-lg md:text-xl opacity-80 mt-2">Question ${exam.currentIndex + 1} of ${qList.length} (${progress}%)</div>
           </div>
         </div>
 
-        <!-- Question Area - Reduced width for better readability -->
+        <!-- Question Area - Medium width, centered -->
         <div class="max-w-3xl mx-auto">
-          <div class="glass-dark p-8 md:p-12 rounded-2xl mb-10">
+          <div class="glass-dark p-8 md:p-10 rounded-2xl mb-10">
             <p class="text-xl md:text-2xl leading-relaxed mb-10">${q.q}</p>
             <div class="space-y-6">
               ${q.opts.map((opt, idx) => `
@@ -3988,25 +3969,25 @@ sss1: {
         <!-- Control Buttons - Medium size -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
           <button onclick="prevQuestion()" ${exam.currentIndex === 0 ? 'disabled' : ''}
-                  class="btn bg-gray-600 hover:bg-gray-700 text-xl md:text-2xl py-5 rounded-2xl ${exam.currentIndex === 0 ? 'opacity-60 cursor-not-allowed' : ''}">
+                  class="btn bg-gray-600 hover:bg-gray-700 text-xl py-5 rounded-2xl ${exam.currentIndex === 0 ? 'opacity-60 cursor-not-allowed' : ''}">
             ← Previous
           </button>
-          <button onclick="nextQuestion()" class="btn text-xl md:text-2xl py-5 rounded-2xl">
+          <button onclick="nextQuestion()" class="btn text-xl py-5 rounded-2xl">
             Next →
           </button>
-          <button onclick="submitExam()" class="btn bg-red-600 hover:bg-red-700 text-xl md:text-2xl py-5 rounded-2xl">
+          <button onclick="submitExam()" class="btn bg-red-600 hover:bg-red-700 text-xl py-5 rounded-2xl">
             Submit Exam
           </button>
         </div>
 
         <div class="text-center mt-12">
-          <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700 text-xl md:text-2xl py-5 rounded-2xl px-8">
+          <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700 text-xl py-5 rounded-2xl px-8">
             💬 Open Public Chat
           </button>
         </div>
       </div>
 
-      <!-- Question Navigator at Bottom -->
+      <!-- Question Navigator -->
       <div class="glass-dark p-4 md:p-6 rounded-2xl mt-6 overflow-x-auto shadow-xl">
         <h3 class="text-lg md:text-xl font-bold mb-4 text-center">${subj} Navigator</h3>
         <div class="grid grid-cols-8 md:grid-cols-10 gap-2 md:gap-3 justify-center min-w-max">
@@ -4016,7 +3997,7 @@ sss1: {
               <button onclick="goToQuestion(${i})"
                       class="w-10 h-10 md:w-12 md:h-12 rounded-xl font-bold text-sm md:text-lg transition-all shadow-md
                       ${i === exam.currentIndex ? 'bg-purple-600 text-white scale-110 md:scale-125' : 'bg-white/40 hover:bg-white/60'}
-                      ${answered ? 'ring-4 ring-green-500 ring-offset-2' : ''}">
+                      ${answered ? 'ring-4 ring-green-500 ring-offset-2 ring-offset-gray-900/50' : ''}">
                 ${i + 1}
               </button>`;
           }).join('')}
@@ -4024,18 +4005,17 @@ sss1: {
       </div>
     </div>`;
 
-  // Answer saving + refresh navigator
+  // Answer handling - only refresh UI, timer continues smoothly
   document.querySelectorAll('input[name="option"]').forEach(radio => {
     radio.addEventListener('change', () => {
       const selected = parseInt(radio.value);
       exam.answers[`${subj}-${exam.currentIndex}`] = selected;
       db.collection('ongoingExams').doc(user).update({ answers: exam.answers }).catch(() => {});
-      renderExam();
+      renderExam(); // Smooth navigation, no timer restart
     });
   });
 
-  // Ensure timer starts immediately
-  startTimer();
+  // NO startTimer() call here — timer is managed globally and updates automatically
 }
 
       function goToQuestion(index) {
@@ -4067,60 +4047,58 @@ sss1: {
       function startTimer() {
   if (timerInterval) clearInterval(timerInterval);
 
-  timerInterval = setInterval(() => {
-    const now = Date.now();
+  // Immediate update when timer starts
+  updateTimerDisplay();
 
-    // Robust start time extraction
-    let startTimeMs;
-    if (exam.startTime) {
-      if (typeof exam.startTime.toDate === 'function') {
-        // Normal Firestore Timestamp
-        startTimeMs = exam.startTime.toDate().getTime();
-      } else if (exam.startTime instanceof Date) {
-        startTimeMs = exam.startTime.getTime();
-      } else if (typeof exam.startTime === 'object' && exam.startTime.seconds) {
-        // Fallback for raw timestamp object
-        startTimeMs = exam.startTime.seconds * 1000;
-      } else {
-        startTimeMs = parseInt(exam.startTime) || Date.now();
-      }
-    } else {
-      startTimeMs = Date.now();
-    }
-
-    // Safety: if start time is invalid, use now (prevents NaN)
-    if (isNaN(startTimeMs)) {
-      startTimeMs = Date.now();
-    }
-
-    const elapsed = now - startTimeMs;
-    let remaining = EXAM_DURATION_MS - elapsed;
-
-    if (remaining <= 0) {
-      clearInterval(timerInterval);
-      alert("Time is up! Your exam is being submitted automatically.");
-      submitExam();
-      return;
-    }
-
-    const hours = String(Math.floor(remaining / 3600000)).padStart(2, '0');
-    const mins = String(Math.floor((remaining % 3600000) / 60000)).padStart(2, '0');
-    const secs = String(Math.floor((remaining % 60000) / 1000)).padStart(2, '0');
-
-    const timerEl = document.getElementById('timerDisplay');
-    if (timerEl) {
-      timerEl.textContent = `${hours}:${mins}:${secs}`;
-
-      // Pulse only in last 10 minutes
-      if (remaining < 600000) {
-        timerEl.classList.add('animate-pulse');
-      } else {
-        timerEl.classList.remove('animate-pulse'); // Remove if more than 10 min left
-      }
-    }
-  }, 1000);
+  // Update every second
+  timerInterval = setInterval(updateTimerDisplay, 1000);
 }
+      function updateTimerDisplay() {
+  if (!exam || !exam.startTime) return;
 
+  const now = Date.now();
+  let startTimeMs;
+
+  if (typeof exam.startTime.toDate === 'function') {
+    startTimeMs = exam.startTime.toDate().getTime();
+  } else if (exam.startTime instanceof Date) {
+    startTimeMs = exam.startTime.getTime();
+  } else if (typeof exam.startTime === 'object' && exam.startTime.seconds) {
+    startTimeMs = exam.startTime.seconds * 1000;
+  } else {
+    startTimeMs = now; // fallback
+  }
+
+  const elapsed = now - startTimeMs;
+  let remaining = EXAM_DURATION_MS - elapsed;
+
+  const timerEl = document.getElementById('timerDisplay');
+  if (!timerEl) return;
+
+  if (remaining <= 0) {
+    clearInterval(timerInterval);
+    timerEl.textContent = "00:00:00";
+    timerEl.className = "text-4xl md:text-5xl font-bold text-red-500 animate-pulse";
+    alert("Time is up! Your exam is being submitted automatically.");
+    submitExam();
+    return;
+  }
+
+  const hours = String(Math.floor(remaining / 3600000)).padStart(2, '0');
+  const mins = String(Math.floor((remaining % 3600000) / 60000)).padStart(2, '0');
+  const secs = String(Math.floor((remaining % 60000) / 1000)).padStart(2, '0');
+  timerEl.textContent = `${hours}:${mins}:${secs}`;
+
+  // Color logic: Green >20 min, Yellow 10–20 min, Red <10 min + pulse
+  const minutesLeft = Math.floor(remaining / 60000);
+  if (minutesLeft > 20) {
+    timerEl.className = "text-4xl md:text-5xl font-bold text-green-500";
+  } else if (minutesLeft > 10) {
+    timerEl.className = "text-4xl md:text-5xl font-bold text-yellow-500";
+  } else {
+    timerEl.className = "text-4xl md:text-5xl font-bold text-red-500 animate-pulse";
+  }
+}
       async function submitExam() {
         if (!confirm("Are you sure you want to submit your exam? You cannot change answers after this.")) return;
 
