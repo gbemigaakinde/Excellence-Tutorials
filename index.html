@@ -3712,9 +3712,9 @@ sss1: {
             </div>
 
             <div id="loginDiv">
-              <input id="loginEmail" type="email" placeholder="Email" class="w-full mb-4 px-6 py-4 text-lg" required />
-              <input id="loginPass" type="password" placeholder="Password" class="w-full mb-6 px-6 py-4 text-lg" required />
-              <button onclick="login()" class="btn w-full text-xl md:text-2xl py-5 mb-4">LOGIN</button>
+              <input id="loginEmail" type="email" placeholder="Email" class="w-full mb-4" required />
+              <input id="loginPass" type="password" placeholder="Password" class="w-full mb-6" required />
+              <button onclick="login()" class="btn w-full text-xl mb-4">LOGIN</button>
 
               <p class="text-center text-sm text-gray-600 mb-3">
                 New here? 
@@ -3731,15 +3731,15 @@ sss1: {
             </div>
 
             <div id="registerDiv" class="hidden space-y-4">
-              <input id="regName" type="text" placeholder="Full Name" class="w-full mb-4 px-6 py-4 text-lg" required />
-              <select id="regClass" class="w-full mb-4 px-6 py-4 text-lg" required>
+              <input id="regName" type="text" placeholder="Full Name" class="w-full" required />
+              <select id="regClass" class="w-full" required>
                 <option value="" disabled selected>Select Class</option>
                 <option>JSS1</option><option>JSS2</option><option>JSS3</option>
                 <option>SSS1</option><option>SSS2</option><option>SSS3</option>
               </select>
-              <input id="regSchool" type="text" placeholder="School Name" class="w-full mb-4 px-6 py-4 text-lg" required />
-              <input id="regEmail" type="email" placeholder="Email" class="w-full mb-4 px-6 py-4 text-lg" required />
-              <input id="regPass" type="password" placeholder="Password (6+ characters)" class="w-full mb-4 px-6 py-4 text-lg" required />
+              <input id="regSchool" type="text" placeholder="School Name" class="w-full" required />
+              <input id="regEmail" type="email" placeholder="Email" class="w-full" required />
+              <input id="regPass" type="password" placeholder="Password (6+ characters)" class="w-full" required />
               <button onclick="register()" class="btn w-full text-xl">REGISTER</button>
               <p class="text-center text-sm text-gray-600">
                 <span onclick="showLogin()" class="text-purple-600 underline cursor-pointer font-medium">Back to Login</span>
@@ -3939,66 +3939,67 @@ sss1: {
         const progress = Math.round(((exam.currentIndex + 1) / qList.length) * 100);
 
         document.getElementById('app').innerHTML = `
-          <div class="max-w-5xl mx-auto p-4 flex flex-col min-h-screen">
-  <!-- Main Exam Content (top) -->
-  <div class="glass p-6 md:p-10 rounded-3xl flex-1">
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
-      <h2 class="text-3xl md:text-4xl font-bold">${subj}</h2>
-      <div class="text-center md:text-right">
-        <div id="timerDisplay" class="text-4xl md:text-5xl font-bold text-red-500">02:00:00</div>
-        <div class="text-lg md:text-xl opacity-80 mt-2">Question ${exam.currentIndex + 1} of ${qList.length} (${progress}%)</div>
-      </div>
-    </div>
+          <div class="max-w-5xl mx-auto">
+            <!-- Question Navigator -->
+            <div class="glass-dark p-6 rounded-2xl mb-8 overflow-x-auto">
+              <h3 class="text-xl font-bold mb-4 text-center">${subj} Navigator</h3>
+              <div class="grid grid-cols-10 gap-3 min-w-max px-4">
+                ${qList.map((_, i) => `
+                  <button onclick="goToQuestion(${i})"
+                          class="w-12 h-12 rounded-xl font-bold text-lg transition-all
+                          ${i === exam.currentIndex ? 'bg-purple-600 text-white scale-110 shadow-lg' : 'bg-white/30 hover:bg-white/50'}
+                          ${exam.answers[`${subj}-${i}`] !== undefined ? 'border-4 border-green-500' : ''}">
+                    ${i + 1}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
 
-    <div class="glass-dark p-8 md:p-10 rounded-2xl mb-10">
-      <p class="text-xl md:text-2xl leading-relaxed mb-10">${q.q}</p>
-      <div class="space-y-6">
-        ${q.opts.map((opt, idx) => `
-          <label class="block glass p-6 rounded-xl cursor-pointer hover:bg-white/10 transition text-lg md:text-xl">
-            <input type="radio" name="option" value="${idx}"
-                   ${exam.answers[`${subj}-${exam.currentIndex}`] === idx ? 'checked' : ''}
-                   class="mr-5 w-6 h-6 md:w-7 md:h-7 accent-purple-600">
-            <span>${opt}</span>
-          </label>
-        `).join('')}
-      </div>
-    </div>
+            <!-- Main Exam Area -->
+            <div class="glass p-10 rounded-3xl">
+              <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
+                <h2 class="text-4xl font-bold">${subj}</h2>
+                <div class="text-center md:text-right">
+                  <div id="timerDisplay" class="text-5xl font-bold text-red-500">02:00:00</div>
+                  <div class="text-xl opacity-80 mt-2">Question ${exam.currentIndex + 1} of ${qList.length} (${progress}%)</div>
+                </div>
+              </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <button onclick="prevQuestion()" ${exam.currentIndex === 0 ? 'disabled' : ''}
-              class="btn bg-gray-600 hover:bg-gray-700 text-2xl md:text-3xl py-6 rounded-2xl ${exam.currentIndex === 0 ? 'opacity-60 cursor-not-allowed' : ''}">
-        ← Previous
-      </button>
-      <button onclick="nextQuestion()" class="btn text-2xl md:text-3xl py-6 rounded-2xl">
-        Next →
-      </button>
-      <button onclick="submitExam()" class="btn bg-red-600 hover:bg-red-700 text-2xl md:text-3xl py-6 rounded-2xl">
-        Submit Exam
-      </button>
-    </div>
+              <div class="glass-dark p-10 rounded-2xl mb-10">
+                <p class="text-2xl leading-relaxed mb-10">${q.q}</p>
+                <div class="space-y-6">
+                  ${q.opts.map((opt, idx) => `
+                    <label class="block glass p-6 rounded-xl cursor-pointer hover:bg-white/10 transition text-xl">
+                      <input type="radio" name="option" value="${idx}"
+                             ${exam.answers[`${subj}-${exam.currentIndex}`] === idx ? 'checked' : ''}
+                             class="mr-5 w-7 h-7 accent-purple-600">
+                      <span>${opt}</span>
+                    </label>
+                  `).join('')}
+                </div>
+              </div>
 
-    <div class="text-center mt-12">
-      <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700 text-2xl md:text-3xl py-6 rounded-2xl px-8">
-        💬 Open Public Chat
-      </button>
-    </div>
-  </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <button onclick="prevQuestion()" ${exam.currentIndex === 0 ? 'disabled' : ''}
+                        class="btn bg-gray-600 hover:bg-gray-700 text-2xl py-6 ${exam.currentIndex === 0 ? 'opacity-60 cursor-not-allowed' : ''}">
+                  ← Previous
+                </button>
+                <button onclick="nextQuestion()" class="btn text-2xl py-6">
+                  Next →
+                </button>
+                <button onclick="submitExam()" class="btn bg-red-600 hover:bg-red-700 text-2xl py-6">
+                  Submit Exam
+                </button>
+              </div>
 
-  <!-- Question Navigator at Bottom (fixed position on small screens) -->
-  <div class="glass-dark p-4 md:p-6 rounded-2xl mt-6 overflow-x-auto shadow-xl">
-    <h3 class="text-lg md:text-xl font-bold mb-4 text-center">${subj} Navigator</h3>
-    <div class="grid grid-cols-8 md:grid-cols-10 gap-2 md:gap-3 justify-center min-w-max">
-      ${qList.map((_, i) => `
-        <button onclick="goToQuestion(${i})"
-                class="w-10 h-10 md:w-12 md:h-12 rounded-xl font-bold text-sm md:text-lg transition-all shadow-md
-                ${i === exam.currentIndex ? 'bg-purple-600 text-white scale-110 md:scale-125' : 'bg-white/40 hover:bg-white/60'}
-                ${exam.answers[`${subj}-${i}`] !== undefined ? 'ring-3 md:ring-4 ring-green-500 ring-offset-1 md:ring-offset-2' : ''}">
-          ${i + 1}
-        </button>
-      `).join('')}
-    </div>
-  </div>
-</div>
+              <div class="text-center mt-12">
+                <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700 text-2xl px-16 py-6">
+                  💬 Open Public Chat
+                </button>
+              </div>
+            </div>
+          </div>`;
+
         // Save answer on change
         document.querySelectorAll('input[name="option"]').forEach(radio => {
           radio.addEventListener('change', () => {
@@ -4224,124 +4225,98 @@ sss1: {
 
       // ==================== PUBLIC CHAT ====================
       async function openPublicChat() {
-  const isTeacher = user === TEACHER_UID;
-  const adminSnap = await db.collection('admins').doc(user).get();
-  const isAdmin = isTeacher || adminSnap.exists;
+        const isTeacher = user === TEACHER_UID;
+        const adminSnap = await db.collection('admins').doc(user).get();
+        const isAdmin = isTeacher || adminSnap.exists;
 
-  const lockSnap = await db.collection('chatSettings').doc('lock').get();
-  const chatLocked = lockSnap.exists && lockSnap.data().isLocked;
+        const lockSnap = await db.collection('chatSettings').doc('lock').get();
+        const chatLocked = lockSnap.exists && lockSnap.data().isLocked;
 
-  document.getElementById('app').innerHTML = `
-    <div class="max-w-4xl mx-auto glass p-8 mt-8 rounded-3xl">
-      <div class="flex justify-between items-center mb-6">
-        <h2 class="text-3xl md:text-4xl font-bold">Public Discussion Chat</h2>
-        <button onclick="backFromChat()" class="btn bg-gray-600 hover:bg-gray-700 text-lg md:text-xl px-6 py-3">Back</button>
-      </div>
+        document.getElementById('app').innerHTML = `
+          <div class="max-w-4xl mx-auto glass p-8 mt-8 rounded-3xl">
+            <div class="flex justify-between items-center mb-8">
+              <h2 class="text-4xl font-bold">Public Discussion Chat</h2>
+              <button onclick="backFromChat()" class="btn bg-gray-600 hover:bg-gray-700 text-xl px-8 py-4">Back</button>
+            </div>
 
-      <!-- Conversation Area Header -->
-      <div class="glass-dark p-6 rounded-2xl mb-8 text-center shadow-lg">
-        <p class="text-xl md:text-2xl font-semibold text-purple-700">
-          This is the conversation area for all students
-        </p>
-        <p class="text-lg opacity-80 mt-2">
-          Ask questions, discuss topics, and help one another with love and respect 
-        </p>
-      </div>
+            ${chatLocked && !isTeacher ? `
+              <div class="glass-dark p-6 rounded-2xl mb-6 text-center bg-red-900/20 border border-red-500">
+                <p class="text-2xl text-red-400 font-bold">Chat is currently LOCKED</p>
+                <p>You can read messages but cannot send new ones.</p>
+              </div>` : ''}
 
-      <!-- Chat Rules -->
-      <div class="glass p-6 rounded-2xl mb-8 border-l-4 border-purple-600 bg-purple-50">
-        <h3 class="text-xl font-bold mb-4 text-purple-800">Chat Rules</h3>
-        <ul class="space-y-3 text-lg opacity-90">
-          <li>• Be respectful and kind to everyone</li>
-          <li>• No abusive or offensive language</li>
-          <li>• Ask only academic-related questions</li>
-          <li>• Help and correct yourselves with kindness</li>
-          <li>• Master Timothy may lock chat if needed</li>
-        </ul>
-        <p class="text-sm opacity-70 mt-6 italic">Violations may result in removal from chat.</p>
-      </div>
+            ${isTeacher ? `
+              <div class="text-center mb-6">
+                <button onclick="toggleChatLock()" class="btn ${chatLocked ? 'bg-green-600' : 'bg-red-600'} text-xl px-10 py-4">
+                  ${chatLocked ? 'Unlock Chat' : 'Lock Chat'}
+                </button>
+              </div>` : ''}
 
-      ${chatLocked && !isTeacher ? `
-        <div class="glass-dark p-6 rounded-2xl mb-6 text-center bg-red-900/20 border border-red-500">
-          <p class="text-2xl text-red-400 font-bold">Chat is currently LOCKED</p>
-          <p>You can read messages but cannot send new ones.</p>
-        </div>` : ''}
+            <div id="chatMessages" class="glass-dark p-6 rounded-2xl max-h-96 overflow-y-auto mb-6 space-y-4"></div>
 
-      ${isTeacher ? `
-        <div class="text-center mb-6">
-          <button onclick="toggleChatLock()" class="btn ${chatLocked ? 'bg-green-600' : 'bg-red-600'} text-xl px-10 py-4">
-            ${chatLocked ? 'Unlock Chat' : 'Lock Chat'}
-          </button>
-        </div>` : ''}
+            <div id="typingIndicator" class="text-sm text-center opacity-70 mb-4 hidden"></div>
 
-      <div id="chatMessages" class="glass-dark p-6 rounded-2xl max-h-96 overflow-y-auto mb-6 space-y-4"></div>
+            ${replyingTo ? `
+              <div id="replyPreview" class="glass-dark p-4 rounded-xl mb-4 flex justify-between items-center">
+                <div>
+                  <strong>Replying to ${replyingTo.name}:</strong>
+                  <span class="block truncate max-w-md">${replyingTo.text}</span>
+                </div>
+                <button onclick="cancelReply()" class="text-red-500 text-2xl">×</button>
+              </div>` : ''}
 
-      <div id="typingIndicator" class="text-sm text-center opacity-70 mb-4 hidden"></div>
+            <div class="flex gap-4">
+              <input id="chatInput" type="text" placeholder="${chatLocked && !isTeacher ? 'Chat locked' : 'Type your message...'}"
+                     class="flex-1 p-4 rounded-xl" ${chatLocked && !isTeacher ? 'disabled' : ''} autocomplete="off">
+              <button onclick="sendMessage()" class="btn bg-green-600 hover:bg-green-700 text-xl px-8" ${chatLocked && !isTeacher ? 'disabled' : ''}>
+                Send
+              </button>
+            </div>
+          </div>`;
 
-      ${replyingTo ? `
-        <div id="replyPreview" class="glass-dark p-4 rounded-xl mb-4 flex justify-between items-center">
-          <div>
-            <strong>Replying to ${replyingTo.name}:</strong>
-            <span class="block truncate max-w-md">${replyingTo.text}</span>
-          </div>
-          <button onclick="cancelReply()" class="text-red-500 text-2xl">×</button>
-        </div>` : ''}
+        loadChatMessages(isAdmin || isTeacher);
 
-      <div class="flex gap-4">
-        <input id="chatInput" type="text" placeholder="${chatLocked && !isTeacher ? 'Chat locked' : 'Type your message...'}"
-               class="flex-1 p-4 rounded-xl" ${chatLocked && !isTeacher ? 'disabled' : ''} autocomplete="off">
-        <button onclick="sendMessage()" class="btn bg-green-600 hover:bg-green-700 text-xl px-8" ${chatLocked && !isTeacher ? 'disabled' : ''}>
-          Send
-        </button>
-      </div>
-    </div>`;
+        const input = document.getElementById('chatInput');
+        input.focus();
 
-  loadChatMessages(isAdmin || isTeacher);
+       input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !(chatLocked && !isTeacher)) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
 
-  const input = document.getElementById('chatInput');
-  input.focus();
+        // Typing indicator
+        let typingTimeout;
+        const typingRef = db.collection('typing').doc(user);
 
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !(chatLocked && !isTeacher)) {
-      e.preventDefault();
-      sendMessage();
-    }
-  });
+        input.addEventListener('input', () => {
+          if (input.value.trim() && !(chatLocked && !isTeacher)) {
+            typingRef.set({
+              typing: true,
+              name: isTeacher ? "Master Timothy" : studentData.name
+            });
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => typingRef.delete(), 3000);
+          }
+        });
 
-  // Typing indicator
-  let typingTimeout;
-  const typingRef = db.collection('typing').doc(user);
-
-  input.addEventListener('input', () => {
-    if (input.value.trim() && !(chatLocked && !isTeacher)) {
-      typingRef.set({
-        typing: true,
-        name: isTeacher ? "Master Timothy" : studentData.name
-      });
-      clearTimeout(typingTimeout);
-      typingTimeout = setTimeout(() => typingRef.delete(), 3000);
-    }
-  });
-
-  db.collection('typing').onSnapshot(snap => {
-    const typers = [];
-    snap.forEach(doc => {
-      if (doc.id !== user && doc.data().typing) {
-        typers.push(doc.data().name);
+        db.collection('typing').onSnapshot(snap => {
+          const typers = [];
+          snap.forEach(doc => {
+            if (doc.id !== user && doc.data().typing) {
+              typers.push(doc.data().name);
+            }
+          });
+          const indicator = document.getElementById('typingIndicator');
+          if (typers.length > 0) {
+            indicator.textContent = typers.join(', ') + (typers.length > 1 ? ' are' : ' is') + ' typing...';
+            indicator.classList.remove('hidden');
+          } else {
+            indicator.classList.add('hidden');
+          }
+        });
       }
-    });
-    const indicator = document.getElementById('typingIndicator');
-    if (typers.length > 0) {
-      indicator.textContent = typers.join(', ') + (typers.length > 1 ? ' are' : ' is') + ' typing...';
-      indicator.classList.remove('hidden');
-    } else {
-      indicator.classList.add('hidden');
-    }
-  });
-
-  // Ensure scroll to bottom on open
-  setTimeout(scrollChatToBottom, 100);
-}
 
       function cancelReply() {
         replyingTo = null;
@@ -4527,16 +4502,6 @@ function scrollChatToBottom() {
       const adminSnap = await db.collection('admins').doc(doc.id).get();
       const isAdmin = adminSnap.exists;
 
-      // Format registration date
-      let regDate = 'Unknown';
-      if (data.createdAt) {
-        if (typeof data.createdAt.toDate === 'function') {
-          regDate = data.createdAt.toDate().toLocaleString();
-        } else {
-          regDate = new Date(data.createdAt).toLocaleString();
-        }
-      }
-
       html += `
         <div class="glass-dark p-6 rounded-2xl text-center relative">
           <button onclick="removeStudent('${doc.id}')" class="absolute top-3 right-3 text-red-500 text-2xl">×</button>
@@ -4545,8 +4510,7 @@ function scrollChatToBottom() {
           </button>
           <p class="text-xl font-bold">${data.name}</p>
           <p class="opacity-80">${data.class} • ${data.school}</p>
-          <p class="text-xs opacity-70 mt-2 break-all">${data.email}</p>
-          <p class="text-xs opacity-60 mt-4 italic">Registered: ${regDate}</p>
+          <p class="text-xs opacity-70 mt-4 break-all">${data.email}</p>
         </div>`;
     }
 
