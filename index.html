@@ -3937,47 +3937,70 @@ sss1: {
   const q = qList[exam.currentIndex];
   const progress = Math.round(((exam.currentIndex + 1) / qList.length) * 100);
 
+  // Calculate remaining time for color logic
+  const now = Date.now();
+  let startTimeMs = exam.startTime;
+  if (typeof exam.startTime.toDate === 'function') {
+    startTimeMs = exam.startTime.toDate().getTime();
+  } else if (exam.startTime instanceof Date) {
+    startTimeMs = exam.startTime.getTime();
+  } else if (typeof exam.startTime === 'object' && exam.startTime.seconds) {
+    startTimeMs = exam.startTime.seconds * 1000;
+  }
+  if (isNaN(startTimeMs)) startTimeMs = now;
+
+  const elapsed = now - startTimeMs;
+  const remaining = EXAM_DURATION_MS - elapsed;
+  const minutesLeft = Math.floor(remaining / 60000);
+
+  // Timer color: green if >20 min, yellow 10-20 min, red <10 min
+  const timerColor = minutesLeft > 20 ? 'text-green-500' : minutesLeft > 10 ? 'text-yellow-500' : 'text-red-500';
+
   document.getElementById('app').innerHTML = `
-    <div class="max-w-5xl mx-auto p-4 flex flex-col min-h-screen">
-      <!-- Main Exam Content (top) -->
+    <div class="max-w-4xl mx-auto p-4 flex flex-col min-h-screen">
+      <!-- Main Exam Content -->
       <div class="glass p-6 md:p-10 rounded-3xl flex-1">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
           <h2 class="text-3xl md:text-4xl font-bold">${subj}</h2>
           <div class="text-center md:text-right">
-            <div id="timerDisplay" class="text-4xl md:text-5xl font-bold text-red-500">02:00:00</div>
+            <div id="timerDisplay" class="text-4xl md:text-5xl font-bold ${timerColor}">02:00:00</div>
             <div class="text-lg md:text-xl opacity-80 mt-2">Question ${exam.currentIndex + 1} of ${qList.length} (${progress}%)</div>
           </div>
         </div>
 
-        <div class="glass-dark p-8 md:p-10 rounded-2xl mb-10">
-          <p class="text-xl md:text-2xl leading-relaxed mb-10">${q.q}</p>
-          <div class="space-y-6">
-            ${q.opts.map((opt, idx) => `
-              <label class="block glass p-6 rounded-xl cursor-pointer hover:bg-white/10 transition text-lg md:text-xl">
-                <input type="radio" name="option" value="${idx}"
-                       ${exam.answers[`${subj}-${exam.currentIndex}`] === idx ? 'checked' : ''}
-                       class="mr-5 w-6 h-6 md:w-7 md:h-7 accent-purple-600">
-                <span>${opt}</span>
-              </label>
-            `).join('')}
+        <!-- Question Area - Reduced width for better readability -->
+        <div class="max-w-3xl mx-auto">
+          <div class="glass-dark p-8 md:p-12 rounded-2xl mb-10">
+            <p class="text-xl md:text-2xl leading-relaxed mb-10">${q.q}</p>
+            <div class="space-y-6">
+              ${q.opts.map((opt, idx) => `
+                <label class="block glass p-6 rounded-xl cursor-pointer hover:bg-white/10 transition text-lg md:text-xl">
+                  <input type="radio" name="option" value="${idx}"
+                         ${exam.answers[`${subj}-${exam.currentIndex}`] === idx ? 'checked' : ''}
+                         class="mr-5 w-6 h-6 accent-purple-600">
+                  <span>${opt}</span>
+                </label>
+              `).join('')}
+            </div>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Control Buttons - Medium size -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
           <button onclick="prevQuestion()" ${exam.currentIndex === 0 ? 'disabled' : ''}
-                  class="btn bg-gray-600 hover:bg-gray-700 text-2xl md:text-3xl py-6 rounded-2xl ${exam.currentIndex === 0 ? 'opacity-60 cursor-not-allowed' : ''}">
+                  class="btn bg-gray-600 hover:bg-gray-700 text-xl md:text-2xl py-5 rounded-2xl ${exam.currentIndex === 0 ? 'opacity-60 cursor-not-allowed' : ''}">
             ← Previous
           </button>
-          <button onclick="nextQuestion()" class="btn text-2xl md:text-3xl py-6 rounded-2xl">
+          <button onclick="nextQuestion()" class="btn text-xl md:text-2xl py-5 rounded-2xl">
             Next →
           </button>
-          <button onclick="submitExam()" class="btn bg-red-600 hover:bg-red-700 text-2xl md:text-3xl py-6 rounded-2xl">
+          <button onclick="submitExam()" class="btn bg-red-600 hover:bg-red-700 text-xl md:text-2xl py-5 rounded-2xl">
             Submit Exam
           </button>
         </div>
 
         <div class="text-center mt-12">
-          <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700 text-2xl md:text-3xl py-6 rounded-2xl px-8">
+          <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700 text-xl md:text-2xl py-5 rounded-2xl px-8">
             💬 Open Public Chat
           </button>
         </div>
@@ -3987,27 +4010,32 @@ sss1: {
       <div class="glass-dark p-4 md:p-6 rounded-2xl mt-6 overflow-x-auto shadow-xl">
         <h3 class="text-lg md:text-xl font-bold mb-4 text-center">${subj} Navigator</h3>
         <div class="grid grid-cols-8 md:grid-cols-10 gap-2 md:gap-3 justify-center min-w-max">
-          ${qList.map((_, i) => `
-            <button onclick="goToQuestion(${i})"
-                    class="w-10 h-10 md:w-12 md:h-12 rounded-xl font-bold text-sm md:text-lg transition-all shadow-md
-                    ${i === exam.currentIndex ? 'bg-purple-600 text-white scale-110 md:scale-125' : 'bg-white/40 hover:bg-white/60'}
-                    ${exam.answers[`${subj}-${i}`] !== undefined ? 'ring-3 md:ring-4 ring-green-500 ring-offset-1 md:ring-offset-2' : ''}">
-              ${i + 1}
-            </button>
-          `).join('')}
+          ${qList.map((_, i) => {
+            const answered = exam.answers[`${subj}-${i}`] !== undefined;
+            return `
+              <button onclick="goToQuestion(${i})"
+                      class="w-10 h-10 md:w-12 md:h-12 rounded-xl font-bold text-sm md:text-lg transition-all shadow-md
+                      ${i === exam.currentIndex ? 'bg-purple-600 text-white scale-110 md:scale-125' : 'bg-white/40 hover:bg-white/60'}
+                      ${answered ? 'ring-4 ring-green-500 ring-offset-2' : ''}">
+                ${i + 1}
+              </button>`;
+          }).join('')}
         </div>
       </div>
     </div>`;
 
-  // Save answer on change
+  // Answer saving + refresh navigator
   document.querySelectorAll('input[name="option"]').forEach(radio => {
     radio.addEventListener('change', () => {
       const selected = parseInt(radio.value);
       exam.answers[`${subj}-${exam.currentIndex}`] = selected;
       db.collection('ongoingExams').doc(user).update({ answers: exam.answers }).catch(() => {});
-      renderExam(); // refresh navigator highlights
+      renderExam();
     });
   });
+
+  // Ensure timer starts immediately
+  startTimer();
 }
 
       function goToQuestion(index) {
@@ -4149,78 +4177,80 @@ sss1: {
       }
 
       function renderResults(result) {
-        let resultsHTML = `
-          <div class="max-w-5xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
-            <h1 class="text-6xl font-bold mb-8 text-green-600">Exam Completed!</h1>
-            <div class="glass-dark p-10 rounded-2xl mb-12">
-              <div class="text-7xl font-extrabold ${result.grade === 'A' ? 'text-green-500' : result.grade === 'B' ? 'text-blue-500' : result.grade === 'C' ? 'text-yellow-600' : result.grade === 'D' ? 'text-orange-500' : 'text-red-500'}">
-                ${result.percentage}% — Grade ${result.grade}
+  let resultsHTML = `
+    <div class="max-w-5xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
+      <h1 class="text-6xl font-bold mb-8 text-green-600">Exam Completed!</h1>
+
+      <div class="glass-dark p-10 rounded-2xl mb-8">
+        <p class="text-2xl mb-6">Click on each subject below to view your answers, correct answers, and explanations.</p>
+        <div class="text-7xl font-extrabold ${result.grade === 'A' ? 'text-green-500' : result.grade === 'B' ? 'text-blue-500' : result.grade === 'C' ? 'text-yellow-600' : result.grade === 'D' ? 'text-orange-500' : 'text-red-500'}">
+          ${result.percentage}% — Grade ${result.grade}
+        </div>
+      </div>
+
+      <div class="space-y-8 mb-12">
+        ${exam.subjects.map(subj => {
+          const qs = exam.questions[subj];
+          return `
+            <details class="glass-dark rounded-2xl overflow-hidden shadow-lg">
+              <summary class="p-6 text-2xl font-bold cursor-pointer hover:bg-white/10 transition">
+                ${subj} — ${result.correctCounts[subj]}/${qs.length} Correct (${result.scores[subj]}%)
+              </summary>
+              <div class="p-8 space-y-8 bg-white/5">
+                ${qs.map((q, i) => {
+                  const userAns = exam.answers[`${subj}-${i}`];
+                  const correct = userAns === q.ans;
+                  return `
+                    <div class="glass p-8 rounded-xl ${correct ? 'border-4 border-green-500 bg-green-50' : userAns === undefined ? 'border-4 border-gray-400 bg-gray-50' : 'border-4 border-red-500 bg-red-50'}">
+                      <p class="text-xl font-semibold mb-4">Q${i+1}: ${q.q}</p>
+                      <div class="grid md:grid-cols-2 gap-8 mb-6">
+                        <div>
+                          <strong>Your Answer:</strong>
+                          <span class="ml-4 text-lg ${correct ? 'text-green-600' : userAns === undefined ? 'text-gray-600' : 'text-red-600'}">
+                            ${userAns !== undefined ? q.opts[userAns] : 'Not answered'}
+                          </span>
+                        </div>
+                        <div>
+                          <strong>Correct Answer:</strong>
+                          <span class="ml-4 text-lg text-green-600">${q.opts[q.ans]}</span>
+                        </div>
+                      </div>
+                      <div class="bg-gray-100 p-5 rounded-lg">
+                        <strong>Explanation:</strong> ${q.exp}
+                      </div>
+                    </div>`;
+                }).join('')}
               </div>
-            </div>
+            </details>`;
+        }).join('')}
+      </div>
 
-            <div class="space-y-8 mb-12">
-              ${exam.subjects.map(subj => {
-                const qs = exam.questions[subj];
-                return `
-                  <details class="glass-dark rounded-2xl overflow-hidden">
-                    <summary class="p-6 text-2xl font-bold cursor-pointer hover:bg-white/10">
-                      ${subj} — ${result.correctCounts[subj]}/${qs.length} (${result.scores[subj]}%)
-                    </summary>
-                    <div class="p-8 space-y-8">
-                      ${qs.map((q, i) => {
-                        const userAns = exam.answers[`${subj}-${i}`];
-                        const correct = userAns === q.ans;
-                        return `
-                          <div class="glass p-8 rounded-xl ${correct ? 'border-4 border-green-500 bg-green-50' : userAns === undefined ? 'border-4 border-gray-400 bg-gray-50' : 'border-4 border-red-500 bg-red-50'}">
-                            <p class="text-xl font-semibold mb-4">Q${i+1}: ${q.q}</p>
-                            <div class="grid md:grid-cols-2 gap-8 mb-6">
-                              <div>
-                                <strong>Your Answer:</strong>
-                                <span class="ml-4 text-lg ${correct ? 'text-green-600' : userAns === undefined ? 'text-gray-600' : 'text-red-600'}">
-                                  ${userAns !== undefined ? q.opts[userAns] : 'Not answered'}
-                                </span>
-                              </div>
-                              <div>
-                                <strong>Correct Answer:</strong>
-                                <span class="ml-4 text-lg text-green-600">${q.opts[q.ans]}</span>
-                              </div>
-                            </div>
-                            <div class="bg-gray-100 p-5 rounded-lg">
-                              <strong>Explanation:</strong> ${q.exp}
-                            </div>
-                          </div>`;
-                      }).join('')}
-                    </div>
-                  </details>`;
-              }).join('')}
-            </div>
+      <div class="flex flex-col md:flex-row gap-6 justify-center">
+        <button onclick="shareOnWhatsApp()" class="btn bg-green-600 hover:bg-green-700 text-2xl px-12 py-6">📱 Share on WhatsApp</button>
+        <button onclick="copyResultToClipboard()" class="btn bg-blue-600 hover:bg-blue-700 text-2xl px-12 py-6">📋 Copy Result</button>
+        <button onclick="startSubjectSelection()" class="btn text-2xl px-12 py-6">Start New Exam</button>
+      </div>
+    </div>`;
 
-            <div class="flex flex-col md:flex-row gap-6 justify-center">
-              <button onclick="shareOnWhatsApp()" class="btn bg-green-600 hover:bg-green-700 text-2xl px-12 py-6">📱 Share on WhatsApp</button>
-              <button onclick="copyResultToClipboard()" class="btn bg-blue-600 hover:bg-blue-700 text-2xl px-12 py-6">📋 Copy Result</button>
-              <button onclick="startSubjectSelection()" class="btn text-2xl px-12 py-6">Start New Exam</button>
-            </div>
-          </div>`;
+  document.getElementById('app').innerHTML = resultsHTML;
 
-        document.getElementById('app').innerHTML = resultsHTML;
+  window.shareOnWhatsApp = () => {
+    let text = `*Excellence Tutorial CBT Result*%0A%0AName: ${result.name}%0AClass: ${result.class}%0ASchool: ${result.school}%0A%0AOverall: ${result.percentage}% — Grade ${result.grade}%0A%0A`;
+    exam.subjects.forEach(s => {
+      text += `${s}: ${result.scores[s]}%25%0A`;
+    });
+    text += `%0AThank you, Master Timothy ❤️`;
+    window.open(`https://wa.me/?text=${text}`);
+  };
 
-        window.shareOnWhatsApp = () => {
-          let text = `Here is my attempt report:*%0A%0AName: ${result.name}%0AClass: ${result.class}%0ASchool: ${result.school}%0A%0AOverall: ${result.percentage}% — Grade ${result.grade}%0A%0A`;
-          exam.subjects.forEach(s => {
-            text += `${s}: ${result.scores[s]}%25%0A`;
-          });
-          text += `%0AThank you!`;
-          window.open(`https://wa.me/?text=${text}`);
-        };
-
-        window.copyResultToClipboard = () => {
-          let text = `Excellence Tutorial CBT Result\n\nName: ${result.name}\nClass: ${result.class}\nSchool: ${result.school}\n\nOverall: ${result.percentage}% — Grade ${result.grade}\n\n`;
-          exam.subjects.forEach(s => {
-            text += `${s}: ${result.scores[s]}%\n`;
-          });
-          navigator.clipboard.writeText(text).then(() => alert("Result copied to clipboard!"));
-        };
-      }
+  window.copyResultToClipboard = () => {
+    let text = `Excellence Tutorial CBT Result\n\nName: ${result.name}\nClass: ${result.class}\nSchool: ${result.school}\n\nOverall: ${result.percentage}% — Grade ${result.grade}\n\n`;
+    exam.subjects.forEach(s => {
+      text += `${s}: ${result.scores[s]}%\n`;
+    });
+    navigator.clipboard.writeText(text).then(() => alert("Result copied to clipboard!"));
+  };
+}
 
       // ==================== PUBLIC CHAT ====================
       async function openPublicChat() {
@@ -4272,7 +4302,10 @@ sss1: {
           </button>
         </div>` : ''}
 
-      <div id="chatMessages" class="glass-dark p-6 rounded-2xl max-h-96 overflow-y-auto mb-6 space-y-4"></div>
+      <!-- Conversation area with beautiful distinctive border -->
+      <div class="glass-dark p-6 rounded-2xl mb-6 border-4 border-purple-400/60 shadow-2xl bg-white/95">
+        <div id="chatMessages" class="max-h-96 overflow-y-auto space-y-4"></div>
+      </div>
 
       <div id="typingIndicator" class="text-sm text-center opacity-70 mb-4 hidden"></div>
 
