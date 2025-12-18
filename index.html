@@ -100,11 +100,18 @@
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
+
+      @keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease-out;
+}
     </style>
   </head>
   <body class="bg-gradient-to-br from-indigo-50 via-white to-purple-50">
     <div id="app" class="min-h-screen flex items-center justify-center p-6"></div>
-
     <script>
       // Firebase Config
       const firebaseConfig = {
@@ -3835,13 +3842,11 @@ sss1: {
       } else if (typeof exam.startTime === 'object' && exam.startTime.seconds) {
         exam.startTime = new Date(exam.startTime.seconds * 1000);
       }
-    }
-
-    if (exam.step === 'instructions') {
-      renderExamInstructions();
-    } else {
-      startTimer();
+      startTimer();  // Timer already started → resume
       renderExam();
+    } else {
+      renderExam();  // Show exam page
+      showExamInstructionsModal();  // Show modal (timer not started yet)
     }
   } else {
     startSubjectSelection();
@@ -3910,67 +3915,72 @@ sss1: {
   }
 
   exam = {
-    step: 'instructions',  // New step: show instructions first
+    step: 'exam',
     subjects: exam.chosen,
     questions: selectedQuestions,
     currentSubject: exam.chosen[0],
     currentIndex: 0,
     answers: {},
     duration: EXAM_DURATION_MS
+    // NO startTime yet — will be set when student clicks "Ok"
   };
 
-  // Save without startTime yet
   try {
     await db.collection('ongoingExams').doc(user).set(exam);
-    renderExamInstructions();  // Show instructions page
+    renderExam();  // Render exam page first
+    showExamInstructionsModal();  // Then show modal on top
   } catch (err) {
     alert("Failed to start exam. Please try again.");
   }
 }
 
-      function renderExamInstructions() {
-  document.getElementById('app').innerHTML = `
-    <div class="max-w-4xl mx-auto glass p-10 mt-20 rounded-3xl text-center">
-      <h1 class="text-4xl md:text-5xl font-bold mb-8">Exam Instructions</h1>
-      
-      <div class="glass-dark p-8 rounded-2xl mb-10 text-left space-y-6 text-lg md:text-xl">
-        <p>• This exam lasts <strong>2 hours</strong> (120 minutes).</p>
-        <p>• You must answer questions from all selected subjects.</p>
-        <p>• Use the <strong>Previous</strong> and <strong>Next</strong> buttons to navigate.</p>
-        <p>• Use the <strong>navigator at the bottom</strong> to jump to any question.</p>
-        <p>• Answered questions will have a <strong>green ring</strong> in the navigator.</p>
-        <p>• You can open the <strong>Public Chat</strong> anytime for discussion.</p>
-        <p>• Once submitted, you cannot change your answers.</p>
-        <p class="font-bold text-red-600">• The timer starts only when you click the button below.</p>
+      function showExamInstructionsModal() {
+  // Create modal overlay
+  const modalHTML = `
+    <div id="examInstructionsModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div class="glass max-w-2xl w-full p-10 rounded-3xl text-center animate-fadeIn">
+        <h1 class="text-4xl md:text-5xl font-bold mb-8">Exam Instructions</h1>
+        
+        <div class="text-left space-y-4 text-lg md:text-xl mb-10">
+          <p>• This exam lasts <strong>2 hours</strong> (120 minutes).</p>
+          <p>• You must answer questions from all selected subjects.</p>
+          <p>• Use <strong>Previous</strong> and <strong>Next</strong> to navigate.</p>
+          <p>• Use the <strong>navigator at the bottom</strong> to jump to any question.</p>
+          <p>• Answered questions have a <strong>green ring</strong>.</p>
+          <p>• You can open <strong>Public Chat</strong> anytime.</p>
+          <p>• Once submitted, answers cannot be changed.</p>
+          <p class="font-bold text-red-600 text-center mt-6">
+            The timer will start when you click the button below.
+          </p>
+        </div>
+
+        <button onclick="beginExamWithModal()" class="btn bg-purple-600 hover:bg-purple-700 text-2xl md:text-3xl px-16 py-6 rounded-2xl">
+          Ok, I understand — Start Timer Now
+        </button>
+
+        <p class="mt-8 text-sm opacity-70">Good luck! You will do great ❤️</p>
       </div>
-
-      <button onclick="beginExam()" class="btn bg-purple-600 hover:bg-purple-700 text-2xl md:text-3xl px-16 py-6 rounded-2xl">
-        Ok, I understand — Start Exam Now
-      </button>
-
-      <p class="mt-8 text-sm opacity-70">Good luck! You are going to do great ❤️</p>
     </div>`;
+
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
 }
 
-      async function beginExam() {
-  // Now set the official start time
+      async function beginExamWithModal() {
+  // Remove modal
+  const modal = document.getElementById('examInstructionsModal');
+  if (modal) modal.remove();
+
+  // NOW start the timer
   exam.startTime = firebase.firestore.FieldValue.serverTimestamp();
-  exam.step = 'exam';
 
   try {
     await db.collection('ongoingExams').doc(user).update({
-      startTime: exam.startTime,
-      step: 'exam'
+      startTime: exam.startTime
     });
-
-    exam.currentIndex = 0;
-    exam.currentSubject = exam.subjects[0];
-
-    renderExam();
-    startTimer();  // Timer starts HERE — only once
+    startTimer();  // Timer begins here
   } catch (err) {
     console.error(err);
-    alert("Failed to start timer. Please try again.");
+    alert("Failed to start timer. Please refresh and try again.");
   }
 }
       function renderExam() {
