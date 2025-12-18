@@ -3709,50 +3709,77 @@ sss1: {
 
       // ==================== LOGIN / REGISTER ====================
       function renderLogin() {
-        document.getElementById('app').innerHTML = `
-          <div class="max-w-md w-full glass p-10">
-            <div class="text-center mb-10">
-              <h1 class="text-5xl font-extrabold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">
-                Excellence Tutorial
-              </h1>
-              <p class="text-xl text-gray-600">Computer-Based Testing System</p>
-            </div>
+  document.getElementById('app').innerHTML = `
+    <div class="max-w-md w-full glass p-10">
+      <div class="text-center mb-10">
+        <h1 class="text-5xl font-extrabold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">
+          Excellence Tutorial
+        </h1>
+        <p class="text-xl text-gray-600">Computer-Based Testing System</p>
+      </div>
 
-              <div id="loginDiv">
-              <input id="loginEmail" type="email" placeholder="Email" class="w-full mb-4 px-6 py-4 text-lg rounded-xl" required />
-              <input id="loginPass" type="password" placeholder="Password" class="w-full mb-6 px-6 py-4 text-lg rounded-xl" required />
-              <button onclick="login()" class="btn w-full text-xl md:text-2xl py-5 mb-4 rounded-xl">LOGIN</button>
-              <p class="text-center text-sm text-gray-600 mb-3">
-                New student? 
-                <span onclick="showRegister()" class="text-purple-600 underline cursor-pointer font-medium">Register</span>
-              </p>
-              <p class="text-center text-sm">
-                <span onclick="forgotPassword()" class="text-purple-600 underline cursor-pointer font-medium">Forgot Password?</span>
-              </p>
+      <div id="loginDiv">
+        <input id="loginEmail" type="email" placeholder="Email" class="w-full mb-4 px-6 py-4 text-lg rounded-xl" required />
+        <input id="loginPass" type="password" placeholder="Password" class="w-full mb-6 px-6 py-4 text-lg rounded-xl" required />
+        <button onclick="login()" class="btn w-full text-xl md:text-2xl py-5 mb-4 rounded-xl">LOGIN</button>
+        <p class="text-center text-sm text-gray-600 mb-3">
+          New student? 
+          <span onclick="showRegister()" class="text-purple-600 underline cursor-pointer font-medium">Register</span>
+        </p>
+        <p class="text-center text-sm">
+          <span onclick="forgotPassword()" class="text-purple-600 underline cursor-pointer font-medium">Forgot Password?</span>
+        </p>
 
-              <p class="text-center text-xs text-gray-500 mt-8">
-                With love from your master,<br>
-                <span class="font-semibold text-purple-600">Master Timothy ❤️</span>
-              </p>
-            </div>
+        <p class="text-center text-xs text-gray-500 mt-8">
+          With love from your master,<br>
+          <span class="font-semibold text-purple-600">Master Timothy ❤️</span>
+        </p>
+      </div>
 
-            <div id="registerDiv" class="hidden space-y-4">
-              <input id="regName" type="text" placeholder="Full Name" class="w-full mb-4 px-6 py-4 text-lg rounded-xl" required />
-              <select id="regClass" class="w-full mb-4 px-6 py-4 text-lg rounded-xl" required>
-                <option value="" disabled selected>Select Class</option>
-                <option>JSS1</option><option>JSS2</option><option>JSS3</option>
-                <option>SSS1</option><option>SSS2</option><option>SSS3</option>
-              </select>
-              <input id="regSchool" type="text" placeholder="School Name" class="w-full mb-4 px-6 py-4 text-lg rounded-xl" required />
-              <input id="regEmail" type="email" placeholder="Email" class="w-full mb-4 px-6 py-4 text-lg rounded-xl" required />
-              <input id="regPass" type="password" placeholder="Password (6+ characters)" class="w-full mb-4 px-6 py-4 text-lg rounded-xl" required />
-              <button onclick="register()" class="btn w-full text-xl md:text-2xl py-5 rounded-xl">REGISTER</button>
-              <p class="text-center text-sm text-gray-600">
-                <span onclick="showLogin()" class="text-purple-600 underline cursor-pointer font-medium">Back to Login</span>
-              </p>
-            </div>
-          </div>`;
-      }
+      <div id="registerDiv" class="hidden space-y-4">
+        <input id="regName" type="text" placeholder="Full Name" class="w-full mb-4 px-6 py-4 text-lg rounded-xl" required />
+        <select id="regClass" class="w-full mb-4 px-6 py-4 text-lg rounded-xl" required>
+          <option value="" disabled selected>Select Class</option>
+          <option>JSS1</option><option>JSS2</option><option>JSS3</option>
+          <option>SSS1</option><option>SSS2</option><option>SSS3</option>
+        </select>
+        
+        <!-- New School Dropdown -->
+        <select id="regSchool" class="w-full mb-4 px-6 py-4 text-lg rounded-xl" required>
+          <option value="" disabled selected>Loading schools...</option>
+        </select>
+
+        <input id="regEmail" type="email" placeholder="Email" class="w-full mb-4 px-6 py-4 text-lg rounded-xl" required />
+        <input id="regPass" type="password" placeholder="Password (6+ characters)" class="w-full mb-4 px-6 py-4 text-lg rounded-xl" required />
+        <button onclick="register()" class="btn w-full text-xl md:text-2xl py-5 rounded-xl">REGISTER</button>
+        <p class="text-center text-sm text-gray-600">
+          <span onclick="showLogin()" class="text-purple-600 underline cursor-pointer font-medium">Back to Login</span>
+        </p>
+      </div>
+    </div>`;
+
+  // Load schools into registration dropdown
+  db.collection('schools').orderBy('name').onSnapshot(snap => {
+    const select = document.getElementById('regSchool');
+    if (!select) return;
+
+    let options = '<option value="" disabled selected>Select your school</option>';
+    
+    if (snap.empty) {
+      options += '<option value="">No schools added yet — contact Master Timothy</option>';
+    } else {
+      snap.forEach(doc => {
+        const schoolName = doc.data().name;
+        options += `<option value="${schoolName}">${schoolName}</option>`;
+      });
+    }
+    
+    select.innerHTML = options;
+  }, err => {
+    console.error("Error loading schools:", err);
+    document.getElementById('regSchool').innerHTML = '<option value="">Error loading schools</option>';
+  });
+}
 
       function showRegister() {
         document.getElementById('loginDiv').classList.add('hidden');
@@ -3765,38 +3792,38 @@ sss1: {
       }
 
       async function register() {
-        const btn = document.querySelector('#registerDiv button');
-        setButtonLoading(btn);
+  const btn = document.querySelector('#registerDiv button');
+  setButtonLoading(btn);
 
-        const name = document.getElementById('regName').value.trim();
-        const classLevel = document.getElementById('regClass').value;
-        const school = document.getElementById('regSchool').value.trim();
-        const email = document.getElementById('regEmail').value.trim();
-        const pass = document.getElementById('regPass').value;
+  const name = document.getElementById('regName').value.trim();
+  const classLevel = document.getElementById('regClass').value;
+  const school = document.getElementById('regSchool').value;  // Now from dropdown
+  const email = document.getElementById('regEmail').value.trim();
+  const pass = document.getElementById('regPass').value;
 
-        if (!name || !classLevel || !school || !email || pass.length < 6) {
-          alert("Please fill all fields correctly. Password must be at least 6 characters.");
-          setButtonLoading(btn, false);
-          return;
-        }
+  if (!name || !classLevel || !school || !email || pass.length < 6) {
+    alert("Please fill all fields correctly. Password must be at least 6 characters.");
+    setButtonLoading(btn, false);
+    return;
+  }
 
-        try {
-          const cred = await auth.createUserWithEmailAndPassword(email, pass);
-          await db.collection('students').doc(cred.user.uid).set({
-            name,
-            class: classLevel,
-            school,
-            email,
-            createdAt: new Date()
-          });
-          alert("Registration successful! Please log in.");
-          showLogin();
-        } catch (err) {
-          alert("Registration failed: " + (err.message || "Try again"));
-        } finally {
-          setButtonLoading(btn, false);
-        }
-      }
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    await db.collection('students').doc(cred.user.uid).set({
+      name,
+      class: classLevel,
+      school,  // Exact name from your list
+      email,
+      createdAt: new Date()
+    });
+    alert("Registration successful! Please log in.");
+    showLogin();
+  } catch (err) {
+    alert("Registration failed: " + (err.message || "Try again"));
+  } finally {
+    setButtonLoading(btn, false);
+  }
+}
 
       async function login() {
         const btn = document.querySelector('#loginDiv button');
@@ -4534,86 +4561,142 @@ function scrollChatToBottom() {
 
       // ==================== TEACHER DASHBOARD ====================
       function renderTeacherDashboard() {
-        document.getElementById('app').innerHTML = `
-          <div class="max-w-7xl mx-auto glass p-10 mt-10 rounded-3xl">
-            <div class="flex justify-between items-center mb-10">
-              <h1 class="text-5xl font-bold">Teacher Dashboard</h1>
-              <button onclick="auth.signOut()" class="btn text-xl px-8 py-4">Logout</button>
-            </div>
+  document.getElementById('app').innerHTML = `
+    <div class="max-w-7xl mx-auto glass p-10 mt-10 rounded-3xl">
+      <div class="flex justify-between items-center mb-10">
+        <h1 class="text-5xl font-bold">Teacher Dashboard</h1>
+        <button onclick="auth.signOut()" class="btn text-xl px-8 py-4">Logout</button>
+      </div>
 
-            <div class="flex justify-center gap-8 mb-12 flex-wrap">
-              <button onclick="showTeacherTab('students')" class="btn text-2xl px-12 py-5" id="tab-students">Students</button>
-              <button onclick="showTeacherTab('results')" class="btn text-2xl px-12 py-5" id="tab-results">Results</button>
-              <button onclick="showTeacherTab('chat')" class="btn bg-green-600 hover:bg-green-700 text-2xl px-12 py-5" id="tab-chat">Chat</button>
-            </div>
+      <div class="flex justify-center gap-8 mb-12 flex-wrap">
+        <button onclick="showTeacherTab('students')" class="btn text-2xl px-12 py-5" id="tab-students">Students</button>
+        <button onclick="showTeacherTab('results')" class="btn text-2xl px-12 py-5" id="tab-results">Results</button>
+        <button onclick="showTeacherTab('schools')" class="btn text-2xl px-12 py-5" id="tab-schools">Manage Schools</button>
+        <button onclick="showTeacherTab('chat')" class="btn bg-green-600 hover:bg-green-700 text-2xl px-12 py-5" id="tab-chat">Chat</button>
+      </div>
 
-            <div id="teacher-students" class="">
-              <div class="flex justify-between items-center mb-8">
-                <h2 class="text-3xl font-bold">Registered Students</h2>
-                <button onclick="loadStudentsList()" class="btn bg-blue-600 hover:bg-blue-700">Refresh</button>
-              </div>
-              <div id="studentsList" class="grid gap-6 md:grid-cols-3 lg:grid-cols-4"></div>
-            </div>
+      <!-- Students Tab -->
+      <div id="teacher-students" class="">
+        <div class="flex justify-between items-center mb-8">
+          <h2 class="text-3xl font-bold">Registered Students</h2>
+          <button onclick="loadStudentsList()" class="btn bg-blue-600 hover:bg-blue-700">Refresh</button>
+        </div>
+        <div id="studentsList" class="space-y-8"></div>
+      </div>
 
-            <div id="teacher-results" class="hidden">
-              <h2 class="text-3xl font-bold mb-8 text-center">All Exam Results</h2>
-              <div id="resultsList" class="grid gap-6 md:grid-cols-3 lg:grid-cols-4"></div>
-            </div>
+      <!-- Results Tab -->
+      <div id="teacher-results" class="hidden">
+        <h2 class="text-3xl font-bold mb-8 text-center">All Exam Results</h2>
+        <div id="resultsList" class="grid gap-6 md:grid-cols-3 lg:grid-cols-4"></div>
+      </div>
 
-            <div id="teacher-chat" class="hidden"></div>
-          </div>`;
+      <!-- Manage Schools Tab -->
+      <div id="teacher-schools" class="hidden">
+        <h2 class="text-3xl font-bold mb-8 text-center">Manage Schools</h2>
+        <div class="max-w-2xl mx-auto glass-dark p-8 rounded-2xl mb-8">
+          <input id="newSchoolName" type="text" placeholder="Enter new school name" class="w-full p-4 rounded-xl mb-4 text-lg">
+          <button onclick="addSchool()" class="btn bg-purple-600 hover:bg-purple-700 w-full text-xl py-4">Add School</button>
+        </div>
+        <div id="schoolsList" class="space-y-4"></div>
+      </div>
 
-        showTeacherTab('students');
-      }
+      <div id="teacher-chat" class="hidden"></div>
+    </div>`;
+
+  showTeacherTab('students');
+}
 
       function showTeacherTab(tab) {
-        document.getElementById('teacher-students').classList.toggle('hidden', tab !== 'students');
-        document.getElementById('teacher-results').classList.toggle('hidden', tab !== 'results');
-        document.getElementById('teacher-chat').classList.toggle('hidden', tab !== 'chat');
+  document.getElementById('teacher-students').classList.toggle('hidden', tab !== 'students');
+  document.getElementById('teacher-results').classList.toggle('hidden', tab !== 'results');
+  document.getElementById('teacher-schools').classList.toggle('hidden', tab !== 'schools');
+  document.getElementById('teacher-chat').classList.toggle('hidden', tab !== 'chat');
 
-        if (tab === 'students') loadStudentsList();
-        if (tab === 'results') loadAllResults();
-        if (tab === 'chat') openPublicChat();
-      }
+  if (tab === 'students') loadStudentsList();
+  if (tab === 'results') loadAllResults();
+  if (tab === 'schools') loadSchoolsList();
+  if (tab === 'chat') openPublicChat();
+}
 
+      async function addSchool() {
+  const input = document.getElementById('newSchoolName');
+  const name = input.value.trim();
+  if (!name) {
+    alert("Please enter a school name.");
+    return;
+  }
+  if (confirm(`Add school: "${name}"?`)) {
+    await db.collection('schools').add({ name });
+    input.value = '';
+  }
+}
+
+function loadSchoolsList() {
+  const container = document.getElementById('schoolsList');
+  db.collection('schools').orderBy('name').onSnapshot(snap => {
+    let html = '';
+    snap.forEach(doc => {
+      html += `
+        <div class="glass-dark p-6 rounded-2xl flex justify-between items-center">
+          <p class="text-xl font-medium">${doc.data().name}</p>
+          <button onclick="deleteSchool('${doc.id}')" class="text-red-500 text-2xl">×</button>
+        </div>`;
+    });
+    container.innerHTML = html || '<p class="text-center opacity-70">No schools added yet. Add one above!</p>';
+  });
+}
+
+async function deleteSchool(id) {
+  if (confirm("Delete this school name? Students using it will need to re-register.")) {
+    await db.collection('schools').doc(id).delete();
+  }
+}
       function loadStudentsList() {
   const container = document.getElementById('studentsList');
-  container.innerHTML = '<p class="col-span-full text-center">Loading students...</p>';
+  container.innerHTML = '<p class="text-center text-2xl">Loading students...</p>';
 
-  db.collection('students').onSnapshot(async (snap) => {
-    let html = '';
-
-    for (const doc of snap.docs) {
+  db.collection('students').onSnapshot(snap => {
+    const studentsBySchool = {};
+    snap.forEach(doc => {
       const data = doc.data();
-      const adminSnap = await db.collection('admins').doc(doc.id).get();
-      const isAdmin = adminSnap.exists;
+      const school = data.school || 'No School Specified';
+      if (!studentsBySchool[school]) studentsBySchool[school] = [];
+      studentsBySchool[school].push({ id: doc.id, ...data });
+    });
 
-      let regDate = 'Unknown';
-      if (data.createdAt) {
-        if (typeof data.createdAt.toDate === 'function') {
-          regDate = data.createdAt.toDate().toLocaleString();
-        } else {
-          regDate = new Date(data.createdAt).toLocaleString();
-        }
-      }
+    const sortedSchools = Object.keys(studentsBySchool).sort();
 
-      html += `
-        <div class="glass-dark p-6 rounded-2xl text-center relative">
-          <button onclick="removeStudent('${doc.id}')" class="absolute top-3 right-3 text-red-500 text-2xl">×</button>
-          <button onclick="toggleStudentAdmin('${doc.id}', '${data.name.replace(/'/g, "\\'")}')" class="absolute top-3 left-3 text-yellow-500 text-xl">
-            ${isAdmin ? '★' : '☆'}
-          </button>
-          <p class="text-xl font-bold">${data.name}</p>
-          <p class="opacity-80">${data.class} • ${data.school}</p>
-          <p class="text-xs opacity-70 mt-2 break-all">${data.email}</p>
-          <p class="text-xs opacity-60 mt-4 italic">Registered: ${regDate}</p>
-        </div>`;
+    let html = '';
+    if (sortedSchools.length === 0) {
+      html = '<p class="text-center text-2xl opacity-70">No students registered yet</p>';
+    } else {
+      sortedSchools.forEach(school => {
+        const students = studentsBySchool[school];
+        html += `
+          <details class="glass-dark rounded-2xl overflow-hidden shadow-xl" open>
+            <summary class="p-6 text-2xl md:text-3xl font-bold cursor-pointer hover:bg-white/10 transition bg-purple-600/30">
+              ${school} <span class="text-lg font-normal opacity-80">(${students.length} students)</span>
+            </summary>
+            <div class="p-6 pt-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              ${students.map(student => {
+                const regDate = student.createdAt ? new Date(student.createdAt.toDate ? student.createdAt.toDate() : student.createdAt).toLocaleDateString() : 'Unknown';
+                return `
+                  <div class="glass p-6 rounded-2xl relative">
+                    <button onclick="removeStudent('${student.id}')" class="absolute top-3 right-3 text-red-500 text-2xl">×</button>
+                    <button onclick="toggleStudentAdmin('${student.id}', '${student.name.replace(/'/g, "\\'")}')" class="absolute top-3 left-3 text-yellow-500 text-xl">
+                      ${student.isAdmin ? '★' : '☆'}
+                    </button>
+                    <p class="text-xl font-bold">${student.name}</p>
+                    <p class="opacity-80">${student.class}</p>
+                    <p class="text-sm opacity-70 mt-2 break-all">${student.email}</p>
+                    <p class="text-xs opacity-60 mt-4 italic">Joined: ${regDate}</p>
+                  </div>`;
+              }).join('')}
+            </div>
+          </details>`;
+      });
     }
-
-    container.innerHTML = html || '<p class="col-span-full text-center text-2xl opacity-70">No students registered yet</p>';
-  }, (err) => {
-    container.innerHTML = '<p class="col-span-full text-center text-red-500">Error loading students</p>';
-    console.error(err);
+    container.innerHTML = html;
   });
 }
       function loadAllResults() {
