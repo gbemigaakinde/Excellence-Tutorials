@@ -3828,23 +3828,21 @@ sss1: {
   if (ongoingSnap.exists) {
     exam = ongoingSnap.data();
 
-    // Bulletproof startTime handling
+    // Handle startTime safely
     if (exam.startTime) {
       if (typeof exam.startTime.toDate === 'function') {
         exam.startTime = exam.startTime.toDate();
-      } else if (exam.startTime instanceof Date) {
-        // Already a Date
-      } else if (typeof exam.startTime === 'object' && exam.startTime.seconds !== undefined) {
+      } else if (typeof exam.startTime === 'object' && exam.startTime.seconds) {
         exam.startTime = new Date(exam.startTime.seconds * 1000);
-      } else {
-        exam.startTime = new Date(); // Safety fallback
       }
-    } else {
-      exam.startTime = new Date();
     }
 
-    startTimer();
-    renderExam();
+    if (exam.step === 'instructions') {
+      renderExamInstructions();
+    } else {
+      startTimer();
+      renderExam();
+    }
   } else {
     startSubjectSelection();
   }
@@ -3893,44 +3891,88 @@ sss1: {
       }
 
       async function startExam() {
-        if (exam.chosen.length < 2) {
-          alert("Please select at least 2 subjects.");
-          return;
-        }
+  if (exam.chosen.length < 2) {
+    alert("Please select at least 2 subjects.");
+    return;
+  }
 
-        const classKey = studentData.class.replace(/\s+/g, '').toLowerCase();
-        const selectedQuestions = {};
+  const classKey = studentData.class.replace(/\s+/g, '').toLowerCase();
+  const selectedQuestions = {};
 
-        for (const subject of exam.chosen) {
-          const all = questions[classKey][subject] || [];
-          if (all.length === 0) {
-            alert(`No questions available for ${subject}.`);
-            return;
-          }
-          const shuffled = [...all].sort(() => Math.random() - 0.5);
-          selectedQuestions[subject] = shuffled.slice(0, QUESTIONS_PER_SUBJECT);
-        }
+  for (const subject of exam.chosen) {
+    const all = questions[classKey][subject] || [];
+    if (all.length === 0) {
+      alert(`No questions available for ${subject}.`);
+      return;
+    }
+    const shuffled = [...all].sort(() => Math.random() - 0.5);
+    selectedQuestions[subject] = shuffled.slice(0, QUESTIONS_PER_SUBJECT);
+  }
 
-        exam = {
-          step: 'exam',
-          subjects: exam.chosen,
-          questions: selectedQuestions,
-          currentSubject: exam.chosen[0],
-          currentIndex: 0,
-          answers: {},
-          startTime: firebase.firestore.FieldValue.serverTimestamp(),
-          duration: EXAM_DURATION_MS
-        };
+  exam = {
+    step: 'instructions',  // New step: show instructions first
+    subjects: exam.chosen,
+    questions: selectedQuestions,
+    currentSubject: exam.chosen[0],
+    currentIndex: 0,
+    answers: {},
+    duration: EXAM_DURATION_MS
+  };
 
-        try {
-          await db.collection('ongoingExams').doc(user).set(exam);
-          startTimer();
-          renderExam();
-        } catch (err) {
-          alert("Failed to start exam. Please try again.");
-        }
-      }
+  // Save without startTime yet
+  try {
+    await db.collection('ongoingExams').doc(user).set(exam);
+    renderExamInstructions();  // Show instructions page
+  } catch (err) {
+    alert("Failed to start exam. Please try again.");
+  }
+}
 
+      function renderExamInstructions() {
+  document.getElementById('app').innerHTML = `
+    <div class="max-w-4xl mx-auto glass p-10 mt-20 rounded-3xl text-center">
+      <h1 class="text-4xl md:text-5xl font-bold mb-8">Exam Instructions</h1>
+      
+      <div class="glass-dark p-8 rounded-2xl mb-10 text-left space-y-6 text-lg md:text-xl">
+        <p>• This exam lasts <strong>2 hours</strong> (120 minutes).</p>
+        <p>• You must answer questions from all selected subjects.</p>
+        <p>• Use the <strong>Previous</strong> and <strong>Next</strong> buttons to navigate.</p>
+        <p>• Use the <strong>navigator at the bottom</strong> to jump to any question.</p>
+        <p>• Answered questions will have a <strong>green ring</strong> in the navigator.</p>
+        <p>• You can open the <strong>Public Chat</strong> anytime for discussion.</p>
+        <p>• Once submitted, you cannot change your answers.</p>
+        <p class="font-bold text-red-600">• The timer starts only when you click the button below.</p>
+      </div>
+
+      <button onclick="beginExam()" class="btn bg-purple-600 hover:bg-purple-700 text-2xl md:text-3xl px-16 py-6 rounded-2xl">
+        Ok, I understand — Start Exam Now
+      </button>
+
+      <p class="mt-8 text-sm opacity-70">Good luck! You are going to do great ❤️</p>
+    </div>`;
+}
+
+      async function beginExam() {
+  // Now set the official start time
+  exam.startTime = firebase.firestore.FieldValue.serverTimestamp();
+  exam.step = 'exam';
+
+  try {
+    await db.collection('ongoingExams').doc(user).update({
+      startTime: exam.startTime,
+      step: 'exam'
+    });
+
+    exam.currentIndex = 0;
+    exam.currentSubject = exam.subjects[0];
+
+    renderExam();
+    startTimer();  // Timer starts HERE — only once
+  } catch (err) {
+    console.error(err);
+    alert("Failed to start timer. Please try again.");
+  }
+}
       function renderExam() {
   const subj = exam.currentSubject;
   const qList = exam.questions[subj];
@@ -3966,16 +4008,16 @@ sss1: {
           </div>
         </div>
 
-        <!-- Control Buttons - Medium size -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+        <!-- Control Buttons - Now SMALL/COMPACT -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
           <button onclick="prevQuestion()" ${exam.currentIndex === 0 ? 'disabled' : ''}
-                  class="btn bg-gray-600 hover:bg-gray-700 text-xl py-5 rounded-2xl ${exam.currentIndex === 0 ? 'opacity-60 cursor-not-allowed' : ''}">
+                  class="btn bg-gray-600 hover:bg-gray-700 text-base py-3 rounded-xl ${exam.currentIndex === 0 ? 'opacity-60 cursor-not-allowed' : ''}">
             ← Previous
           </button>
-          <button onclick="nextQuestion()" class="btn text-xl py-5 rounded-2xl">
+          <button onclick="nextQuestion()" class="btn text-base py-3 rounded-xl">
             Next →
           </button>
-          <button onclick="submitExam()" class="btn bg-red-600 hover:bg-red-700 text-xl py-5 rounded-2xl">
+          <button onclick="submitExam()" class="btn bg-red-600 hover:bg-red-700 text-base py-3 rounded-xl">
             Submit Exam
           </button>
         </div>
@@ -4005,17 +4047,15 @@ sss1: {
       </div>
     </div>`;
 
-  // Answer handling - only refresh UI, timer continues smoothly
+  // Answer handling
   document.querySelectorAll('input[name="option"]').forEach(radio => {
     radio.addEventListener('change', () => {
       const selected = parseInt(radio.value);
       exam.answers[`${subj}-${exam.currentIndex}`] = selected;
       db.collection('ongoingExams').doc(user).update({ answers: exam.answers }).catch(() => {});
-      renderExam(); // Smooth navigation, no timer restart
+      renderExam();
     });
   });
-
-  // NO startTimer() call here — timer is managed globally and updates automatically
 }
 
       function goToQuestion(index) {
