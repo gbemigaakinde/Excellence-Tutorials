@@ -3977,7 +3977,8 @@ sss1: {
     await db.collection('ongoingExams').doc(user).update({
       startTime: exam.startTime
     });
-    startTimer();  // Timer begins here
+    startTimer();
+    forceTimerUpdate();  // Eliminates the brief timer flicker
   } catch (err) {
     console.error(err);
     alert("Failed to start timer. Please refresh and try again.");
@@ -3990,9 +3991,8 @@ sss1: {
   const progress = Math.round(((exam.currentIndex + 1) / qList.length) * 100);
 
   document.getElementById('app').innerHTML = `
-    <div class="max-w-4xl mx-auto p-4 flex flex-col min-h-screen">
-      <!-- Main Exam Content -->
-      <div class="glass p-6 md:p-8 rounded-3xl flex-1">
+    <div class="max-w-4xl mx-auto p-6 py-12 pb-32 md:pb-12">
+      <div class="glass p-8 md:p-12 rounded-3xl shadow-2xl relative pb-24 md:pb-8">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
           <h2 class="text-3xl md:text-4xl font-bold">${subj}</h2>
           <div class="text-center md:text-right">
@@ -4001,10 +4001,10 @@ sss1: {
           </div>
         </div>
 
-        <!-- Question Area - Medium width, centered -->
+        <!-- Question Area -->
         <div class="max-w-3xl mx-auto">
           <div class="glass-dark p-8 md:p-10 rounded-2xl mb-10">
-            <p class="text-xl md:text-2xl leading-relaxed mb-10">${q.q}</p>
+            <p class="text-lg md:text-2xl leading-relaxed mb-10">${q.q}</p>
             <div class="space-y-6">
               ${q.opts.map((opt, idx) => `
                 <label class="block glass p-6 rounded-xl cursor-pointer hover:bg-white/10 transition text-lg md:text-xl">
@@ -4018,8 +4018,8 @@ sss1: {
           </div>
         </div>
 
-        <!-- Control Buttons - Now SMALL/COMPACT -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
+        <!-- Control Buttons -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto mb-6">
           <button onclick="prevQuestion()" ${exam.currentIndex === 0 ? 'disabled' : ''}
                   class="btn bg-gray-600 hover:bg-gray-700 text-base py-3 rounded-xl ${exam.currentIndex === 0 ? 'opacity-60 cursor-not-allowed' : ''}">
             ← Previous
@@ -4032,27 +4032,30 @@ sss1: {
           </button>
         </div>
 
-        <div class="text-center mt-12">
+        <!-- Public Chat Button -->
+        <div class="text-center mb-8">
           <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700 text-xl py-5 rounded-2xl px-8">
             💬 Open Public Chat
           </button>
         </div>
-      </div>
 
-      <!-- Question Navigator -->
-      <div class="glass-dark p-4 md:p-6 rounded-2xl mt-6 overflow-x-auto shadow-xl">
-        <h3 class="text-lg md:text-xl font-bold mb-4 text-center">${subj} Navigator</h3>
-        <div class="grid grid-cols-8 md:grid-cols-10 gap-2 md:gap-3 justify-center min-w-max">
-          ${qList.map((_, i) => {
-            const answered = exam.answers[`${subj}-${i}`] !== undefined;
-            return `
-              <button onclick="goToQuestion(${i})"
-                      class="w-10 h-10 md:w-12 md:h-12 rounded-xl font-bold text-sm md:text-lg transition-all shadow-md
-                      ${i === exam.currentIndex ? 'bg-purple-600 text-white scale-110 md:scale-125' : 'bg-white/40 hover:bg-white/60'}
-                      ${answered ? 'ring-4 ring-green-500 ring-offset-2 ring-offset-gray-900/50' : ''}">
-                ${i + 1}
-              </button>`;
-          }).join('')}
+        <!-- Question Navigator - Fixed on mobile -->
+        <div class="glass-dark p-4 md:p-6 rounded-2xl overflow-x-auto shadow-xl 
+                    fixed bottom-0 left-0 right-0 md:static md:mt-6 z-40 
+                    bg-white/95 backdrop-blur border-t-4 border-purple-400/60">
+          <h3 class="text-lg md:text-xl font-bold mb-4 text-center">${subj} Navigator</h3>
+          <div class="grid grid-cols-8 md:grid-cols-10 gap-2 md:gap-3 justify-center min-w-max pb-4 md:pb-0">
+            ${qList.map((_, i) => {
+              const answered = exam.answers[`${subj}-${i}`] !== undefined;
+              return `
+                <button onclick="goToQuestion(${i})"
+                        class="w-10 h-10 md:w-12 md:h-12 rounded-xl font-bold text-sm md:text-lg transition-all shadow-md
+                        ${i === exam.currentIndex ? 'bg-purple-600 text-white scale-110 md:scale-125' : 'bg-white/40 hover:bg-white/60'}
+                        ${answered ? 'ring-4 ring-green-500 ring-offset-2 ring-offset-gray-900/50' : ''}">
+                  ${i + 1}
+                </button>`;
+            }).join('')}
+          </div>
         </div>
       </div>
     </div>`;
@@ -4068,6 +4071,10 @@ sss1: {
   });
 }
 
+      function forceTimerUpdate() {
+  updateTimerDisplay(); // Forces immediate correct timer display after page render
+}
+      
       function goToQuestion(index) {
         exam.currentIndex = index;
         renderExam();
@@ -4330,7 +4337,7 @@ sss1: {
           </button>
         </div>` : ''}
 
-      <!-- Conversation area with beautiful distinctive border -->
+      <!-- Conversation area -->
       <div class="glass-dark p-6 rounded-2xl mb-6 border-4 border-purple-400/60 shadow-2xl bg-white/95">
         <div id="chatMessages" class="max-h-96 overflow-y-auto space-y-4"></div>
       </div>
@@ -4341,7 +4348,7 @@ sss1: {
         <div id="replyPreview" class="glass-dark p-4 rounded-xl mb-4 flex justify-between items-center">
           <div>
             <strong>Replying to ${replyingTo.name}:</strong>
-            <span class="block truncate max-w-md">${replyingTo.text}</span>
+            <span class="block truncate max-w-md break-words">${replyingTo.text}</span>
           </div>
           <button onclick="cancelReply()" class="text-red-500 text-2xl">×</button>
         </div>` : ''}
@@ -4399,7 +4406,6 @@ sss1: {
 
   setTimeout(scrollChatToBottom, 100);
 }
-
       function cancelReply() {
         replyingTo = null;
         document.getElementById('replyPreview')?.remove();
