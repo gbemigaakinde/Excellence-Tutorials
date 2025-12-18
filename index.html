@@ -3744,7 +3744,7 @@ sss1: {
           <option>SSS1</option><option>SSS2</option><option>SSS3</option>
         </select>
         
-        <!-- New School Dropdown -->
+        <!-- School Dropdown -->
         <select id="regSchool" class="w-full mb-4 px-6 py-4 text-lg rounded-xl" required>
           <option value="" disabled selected>Loading schools...</option>
         </select>
@@ -3758,7 +3758,7 @@ sss1: {
       </div>
     </div>`;
 
-  // Load schools into registration dropdown
+  // Fixed: Load schools into registration dropdown (no error message on empty)
   db.collection('schools').orderBy('name').onSnapshot(snap => {
     const select = document.getElementById('regSchool');
     if (!select) return;
@@ -3766,7 +3766,7 @@ sss1: {
     let options = '<option value="" disabled selected>Select your school</option>';
     
     if (snap.empty) {
-      options += '<option value="">No schools added yet — contact Master Timothy</option>';
+      options += '<option value="" disabled>No schools available yet — contact Master Timothy</option>';
     } else {
       snap.forEach(doc => {
         const schoolName = doc.data().name;
@@ -3776,8 +3776,11 @@ sss1: {
     
     select.innerHTML = options;
   }, err => {
-    console.error("Error loading schools:", err);
-    document.getElementById('regSchool').innerHTML = '<option value="">Error loading schools</option>';
+    console.error("Error loading schools for registration:", err);
+    const select = document.getElementById('regSchool');
+    if (select) {
+      select.innerHTML = '<option value="" disabled>Error loading schools — try again</option>';
+    }
   });
 }
 
@@ -4612,40 +4615,104 @@ function scrollChatToBottom() {
   document.getElementById('teacher-schools').classList.toggle('hidden', tab !== 'schools');
   document.getElementById('teacher-chat').classList.toggle('hidden', tab !== 'chat');
 
+  // Remove active class from all tabs
+  document.querySelectorAll('#teacherDashboard button[id^="tab-"]').forEach(b => b.classList.remove('bg-purple-600', 'text-white'));
+  
+  // Add active to current
+  document.getElementById(`tab-${tab}`).classList.add('bg-purple-600', 'text-white');
+
   if (tab === 'students') loadStudentsList();
   if (tab === 'results') loadAllResults();
-  if (tab === 'schools') loadSchoolsList();
+  if (tab === 'schools') loadSchoolsList();  // ← Critical: now loads the list
   if (tab === 'chat') openPublicChat();
 }
 
       async function addSchool() {
   const input = document.getElementById('newSchoolName');
   const name = input.value.trim();
+  
   if (!name) {
     alert("Please enter a school name.");
     return;
   }
-  if (confirm(`Add school: "${name}"?`)) {
-    await db.collection('schools').add({ name });
+
+  // Check for duplicate
+  const snap = await db.collection('schools').where('name', '==', name).get();
+  if (!snap.empty) {
+    alert("This school name already exists.");
+    return;
+  }
+
+  try {
+    await db.collection('schools').add({ name });  // ← Fixed: added await
     input.value = '';
+    alert(`School "${name}" added successfully!`);
+  } catch (err) {
+    console.error(err);
+    alert("Failed to add school. Check console.");
   }
 }
 
 function loadSchoolsList() {
   const container = document.getElementById('schoolsList');
+  if (!container) return;
+
+  container.innerHTML = '<p class="text-center opacity-70">Loading schools...</p>';
+
   db.collection('schools').orderBy('name').onSnapshot(snap => {
     let html = '';
-    snap.forEach(doc => {
-      html += `
-        <div class="glass-dark p-6 rounded-2xl flex justify-between items-center">
-          <p class="text-xl font-medium">${doc.data().name}</p>
-          <button onclick="deleteSchool('${doc.id}')" class="text-red-500 text-2xl">×</button>
-        </div>`;
-    });
-    container.innerHTML = html || '<p class="text-center opacity-70">No schools added yet. Add one above!</p>';
+    if (snap.empty) {
+      html = '<p class="text-center text-xl opacity-70">No schools added yet. Add one above!</p>';
+    } else {
+      snap.forEach(doc => {
+        const schoolName = doc.data().name;
+        html += `
+          <div class="glass-dark p-6 rounded-2xl flex justify-between items-center shadow-lg">
+            <p class="text-xl font-medium">${schoolName}</p>
+            <div class="flex gap-4">
+              <button onclick="renameSchool('${doc.id}', '${schoolName.replace(/'/g, "\\'")}')" 
+                      class="btn bg-blue-600 hover:bg-blue-700 px-6 py-3 text-lg">
+                Rename
+              </button>
+              <button onclick="deleteSchool('${doc.id}', '${schoolName.replace(/'/g, "\\'")}')" 
+                      class="text-red-500 text-3xl">×</button>
+            </div>
+          </div>`;
+      });
+    }
+    container.innerHTML = html;
+  }, err => {
+    container.innerHTML = '<p class="text-center text-red-500">Error loading schools</p>';
+    console.error(err);
   });
 }
 
+      async function renameSchool(id, currentName) {
+  const newName = prompt("Enter new school name:", currentName);
+  if (!newName || newName.trim() === currentName) return;
+
+  const trimmed = newName.trim();
+  
+  // Check duplicate
+  const snap = await db.collection('schools').where('name', '==', trimmed).get();
+  if (!snap.empty) {
+    alert("This school name already exists.");
+    return;
+  }
+
+  if (confirm(`Rename "${currentName}" → "${trimmed}"?\nThis will NOT affect existing students.`)) {
+    await db.collection('schools').doc(id).update({ name: trimmed });
+    alert("School renamed successfully!");
+  }
+}
+
+async function deleteSchool(id, schoolName) {
+  if (confirm(`PERMANENTLY delete school "${schoolName}" from the list?\n\nStudents already registered with this school will KEEP their school name, but new students won't see it anymore.`)) {
+    await db.collection('schools').doc(id).delete();
+    alert("School deleted from list.");
+  }
+}
+      
 async function deleteSchool(id) {
   if (confirm("Delete this school name? Students using it will need to re-register.")) {
     await db.collection('schools').doc(id).delete();
