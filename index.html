@@ -4877,19 +4877,18 @@ function saveTasksConfig() {
     // Prepare the data to save
     const tasksData = {
         active: tasksActive,
-        title: title || "Coaching Task",  // default if empty
+        title: title || "Coaching Task",
         message: message || "Please complete the required exams on the scheduled dates.",
-        dates: dates,  // array of dates like ["2025-12-19", "2025-12-26", "2026-01-02"]
+        dates: dates,
         createdAt: new Date().toISOString()
     };
 
-    // Save to Firebase (assuming you use Realtime Database or Firestore)
-    // Change this part if your database path is different
-    firebase.database().ref('coachingTasks').set(tasksData)
+    // THIS IS THE FIXED LINE — using Firestore instead of Realtime Database
+    firebase.firestore().collection('coachingTasks').doc('current').set(tasksData)
         .then(() => {
             alert("Coaching tasks saved and applied successfully!\n\nAll students will now see the task and dates.");
             
-            // Optional: clear the form after saving
+            // Clear the form after saving
             document.getElementById('tasksTitle').value = "";
             document.getElementById('tasksMessage').value = "";
             document.getElementById('tasksDates').innerHTML = "";  // clear date list
@@ -4898,7 +4897,7 @@ function saveTasksConfig() {
         })
         .catch((error) => {
             alert("Error saving tasks: " + error.message);
-            console.error(error);
+            console.error("Firebase error:", error);
         });
 }
 
