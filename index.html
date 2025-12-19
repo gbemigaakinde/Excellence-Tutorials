@@ -3909,17 +3909,17 @@ sss1: {
     let tasksHTML = '';
     if (currentTasks && currentTasks.active && currentTasks.dates && currentTasks.dates.length > 0) {
       tasksHTML = `
-        <div class="glass-dark p-8 rounded-3xl mb-10 text-center shadow-2xl border-4 border-purple-500/50">
+        <div class="glass-dark p-8 rounded-3xl mb-10 shadow-2xl border-4 border-purple-500/50">
           <h3 class="text-3xl font-bold mb-6 text-purple-700">
             ${currentTasks.title || 'Coaching Tasks Active! 🌟'}
           </h3>
           ${currentTasks.message 
-            ? '<p class="text-lg leading-relaxed mb-6">' + 
+            ? '<p class="text-lg leading-relaxed mb-6 text-left">' + 
               currentTasks.message
-                .replace(/\n\n/g, '</p><p class="text-lg leading-relaxed mb-6">')
+                .replace(/\n\n/g, '</p><p class="text-lg leading-relaxed mb-6 text-left">')
                 .replace(/\n/g, '<br>') +
               '</p>'
-            : '<p class="text-lg leading-relaxed mb-6">Complete the tests on these dates to mark them done!</p>'}
+            : '<p class="text-lg leading-relaxed mb-6 text-left">Complete the tests on these dates to mark them done!</p>'}
           <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             ${currentTasks.dates.map(dateStr => {
               const date = new Date(dateStr);
