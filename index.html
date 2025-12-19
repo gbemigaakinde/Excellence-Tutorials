@@ -9,14 +9,21 @@
     <link rel="icon" href="IMG_4512.png" type="image/png">
     <link rel="apple-touch-icon" href="IMG_4512.png">
 
- <!-- Tailwind CDN — moved here -->
-  <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Firebase SDKs (compat mode) -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Segoe UI', 'system-ui', '-apple-system', 'sans-serif'],
+        },
+      },
+    },
+  }
+</script>    
+<script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore-compat.js"></script>
     <style>
       body {
         margin: 0;
