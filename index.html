@@ -8,15 +8,22 @@
     <!-- Favicon -->
     <link rel="icon" href="IMG_4512.png" type="image/png">
     <link rel="apple-touch-icon" href="IMG_4512.png">
-
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Firebase SDKs (compat mode) -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Segoe UI', 'system-ui', '-apple-system', 'sans-serif'],
+        },
+      },
+    },
+  }
+</script>
+   <!-- Firebase SDKs (latest compat mode as of Dec 2025) -->
+<script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore-compat.js"></script>
     <style>
       body {
         margin: 0;
@@ -127,6 +134,10 @@
       const auth = firebase.auth();
       const db = firebase.firestore();
 
+      
+      let timerInterval = null;
+      const EXAM_DURATION = 120 * 60;   // 2 hours in seconds — keep this for resets if needed
+      
       let user = null;
       let studentData = null;
     // ==== PLACE YOUR FULL QUESTIONS OBJECT HERE ====
@@ -3984,9 +3995,10 @@ sss1: {
           </p>
         </div>
 
-        <button onclick="beginExamWithModal()" class="btn bg-purple-600 hover:bg-purple-700 text-2xl md:text-3xl px-16 py-6 rounded-2xl">
-          Ok, I understand — Start Timer Now
-        </button>
+       <button onclick="beginExamWithModal()" 
+        class="px-6 py-3 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition shadow-sm">
+  Okay, I understand — Start Exam Now
+</button>
 
         <p class="mt-8 text-sm opacity-70">Good luck! You will do great ❤️</p>
       </div>
@@ -3994,26 +4006,29 @@ sss1: {
 
   document.body.insertAdjacentHTML('beforeend', modalHTML);
 }
-
-      async function beginExamWithModal() {
-  // Remove modal
+      
+      function beginExamWithModal() {
+  // Remove the instructions modal
   const modal = document.getElementById('examInstructionsModal');
   if (modal) modal.remove();
 
-  // NOW start the timer
-  exam.startTime = firebase.firestore.FieldValue.serverTimestamp();
+  // OFFICIALLY start the exam now
+  exam.startTime = new Date();  // This records the exact start time
 
-  try {
-    await db.collection('ongoingExams').doc(user).update({
-      startTime: exam.startTime
-    });
-    startTimer();
-    forceTimerUpdate();  // Eliminates the brief timer flicker
-  } catch (err) {
-    console.error(err);
-    alert("Failed to start timer. Please refresh and try again.");
-  }
+  // Save the start time to the server so it survives refresh
+  db.collection('ongoingExams').doc(user).update({
+    startTime: exam.startTime
+  }).catch(() => {
+    console.warn("Could not save start time, but timer will still work");
+  });
+
+  // Start the countdown
+  startTimer();
+
+  // Refresh the exam display
+  renderExam();
 }
+
       function renderExam() {
   const subj = exam.currentSubject;
   const qList = exam.questions[subj];
@@ -4132,57 +4147,39 @@ sss1: {
       function startTimer() {
   if (timerInterval) clearInterval(timerInterval);
 
-  // Immediate update when timer starts
-  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    if (!exam || !exam.startTime) return;
 
-  // Update every second
-  timerInterval = setInterval(updateTimerDisplay, 1000);
-}
-      function updateTimerDisplay() {
-  if (!exam || !exam.startTime) return;
+    const elapsed = Date.now() - exam.startTime.getTime();
+    const remaining = EXAM_DURATION_MS - elapsed;
 
-  const now = Date.now();
-  let startTimeMs;
+    const timerEl = document.getElementById('timerDisplay');
+    if (!timerEl) return;
 
-  if (typeof exam.startTime.toDate === 'function') {
-    startTimeMs = exam.startTime.toDate().getTime();
-  } else if (exam.startTime instanceof Date) {
-    startTimeMs = exam.startTime.getTime();
-  } else if (typeof exam.startTime === 'object' && exam.startTime.seconds) {
-    startTimeMs = exam.startTime.seconds * 1000;
-  } else {
-    startTimeMs = now; // fallback
-  }
+    if (remaining <= 0) {
+      clearInterval(timerInterval);
+      timerEl.textContent = "00:00:00";
+      timerEl.className = "text-4xl md:text-5xl font-bold text-red-500 animate-pulse";
+      alert("Time is up! Your exam will be submitted now.");
+      submitExam();
+      return;
+    }
 
-  const elapsed = now - startTimeMs;
-  let remaining = EXAM_DURATION_MS - elapsed;
+    const hours = String(Math.floor(remaining / 3600000)).padStart(2, '0');
+    const mins = String(Math.floor((remaining % 3600000) / 60000)).padStart(2, '0');
+    const secs = String(Math.floor((remaining % 60000) / 1000)).padStart(2, '0');
 
-  const timerEl = document.getElementById('timerDisplay');
-  if (!timerEl) return;
+    timerEl.textContent = `${hours}:${mins}:${secs}`;
 
-  if (remaining <= 0) {
-    clearInterval(timerInterval);
-    timerEl.textContent = "00:00:00";
-    timerEl.className = "text-4xl md:text-5xl font-bold text-red-500 animate-pulse";
-    alert("Time is up! Your exam is being submitted automatically.");
-    submitExam();
-    return;
-  }
-
-  const hours = String(Math.floor(remaining / 3600000)).padStart(2, '0');
-  const mins = String(Math.floor((remaining % 3600000) / 60000)).padStart(2, '0');
-  const secs = String(Math.floor((remaining % 60000) / 1000)).padStart(2, '0');
-  timerEl.textContent = `${hours}:${mins}:${secs}`;
-
-  // Color logic: Green >20 min, Yellow 10–20 min, Red <10 min + pulse
-  const minutesLeft = Math.floor(remaining / 60000);
-  if (minutesLeft > 20) {
-    timerEl.className = "text-4xl md:text-5xl font-bold text-green-500";
-  } else if (minutesLeft > 10) {
-    timerEl.className = "text-4xl md:text-5xl font-bold text-yellow-500";
-  } else {
-    timerEl.className = "text-4xl md:text-5xl font-bold text-red-500 animate-pulse";
-  }
+    // Color changes
+    if (remaining < 600000) { // less than 10 minutes
+      timerEl.className = "text-4xl md:text-5xl font-bold text-red-500 animate-pulse";
+    } else if (remaining < 1800000) { // less than 30 minutes
+      timerEl.className = "text-4xl md:text-5xl font-bold text-yellow-500";
+    } else {
+      timerEl.className = "text-4xl md:text-5xl font-bold text-green-500";
+    }
+  }, 1000);
 }
       async function submitExam() {
         if (!confirm("Are you sure you want to submit your exam? You cannot change answers after this.")) return;
@@ -4713,11 +4710,6 @@ async function deleteSchool(id, schoolName) {
   }
 }
       
-async function deleteSchool(id) {
-  if (confirm("Delete this school name? Students using it will need to re-register.")) {
-    await db.collection('schools').doc(id).delete();
-  }
-}
       function loadStudentsList() {
   const container = document.getElementById('studentsList');
   container.innerHTML = '<p class="text-center text-2xl">Loading students...</p>';
