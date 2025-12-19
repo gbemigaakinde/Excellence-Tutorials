@@ -5070,6 +5070,36 @@ async function loadStudentMessages() {
     .get();
   studentMessages = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
+      function addTaskDate() {
+      let taskInput = document.querySelector('textarea, input[type="text"]');
+      let dateInput = document.querySelector('input[type="date"]');
+
+      if (!taskInput) {
+          alert("Error: Could not find the task description box.");
+          return;
+      }
+      if (!dateInput) {
+          alert("Error: Could not find the date picker.");
+          return;
+      }
+
+      const taskText = taskInput.value.trim();
+      const dueDate = dateInput.value;
+
+      if (taskText === "") {
+          alert("Please write the task description first.");
+          return;
+      }
+      if (dueDate === "") {
+          alert("Please pick a date.");
+          return;
+      }
+
+      alert("Task saved successfully!\n\nTask: " + taskText + "\nDue Date: " + dueDate);
+
+      taskInput.value = "";
+      dateInput.value = "";
+  }
       // Initial render
       renderLogin();
     </script>
