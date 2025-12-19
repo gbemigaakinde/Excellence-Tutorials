@@ -3984,9 +3984,10 @@ sss1: {
           </p>
         </div>
 
-        <button onclick="beginExamWithModal()" class="btn bg-purple-600 hover:bg-purple-700 text-2xl md:text-3xl px-16 py-6 rounded-2xl">
-          Ok, I understand — Start Timer Now
-        </button>
+        <button onclick="beginExamWithModal()" 
+        class="px-8 py-4 bg-green-600 text-white text-lg font-bold rounded-lg hover:bg-green-700 transition">
+  Okay, I understand — Start Exam Now
+</button>
 
         <p class="mt-8 text-sm opacity-70">Good luck! You will do great ❤️</p>
       </div>
@@ -3995,23 +3996,27 @@ sss1: {
   document.body.insertAdjacentHTML('beforeend', modalHTML);
 }
 
-      async function beginExamWithModal() {
-  // Remove modal
+      
+      function beginExamWithModal() {
+  // Instantly remove/hide the modal
   const modal = document.getElementById('examInstructionsModal');
-  if (modal) modal.remove();
+  if (modal) modal.remove();  // or modal.classList.add('hidden') if you use hidden class
 
-  // NOW start the timer
-  exam.startTime = firebase.firestore.FieldValue.serverTimestamp();
+  // Set up and start timer immediately (local)
+  timeLeft = 120 * 60;          // 2 hours — change if needed
+  examStartTime = Date.now();
 
-  try {
-    await db.collection('ongoingExams').doc(user).update({
-      startTime: exam.startTime
+  updateTimerDisplay();         // Shows 02:00:00 instantly → no freeze!
+  startTimer();                 // Begins countdown right away
+
+  // Optional: sync official start time to Firestore in background
+  if (window.db && user) {
+    db.collection('ongoingExams').doc(user).update({
+      startTime: firebase.firestore.FieldValue.serverTimestamp(),
+      localStartTime: examStartTime
+    }).catch(err => {
+      console.warn("Failed to sync start time (non-critical):", err);
     });
-    startTimer();
-    forceTimerUpdate();  // Eliminates the brief timer flicker
-  } catch (err) {
-    console.error(err);
-    alert("Failed to start timer. Please refresh and try again.");
   }
 }
       function renderExam() {
