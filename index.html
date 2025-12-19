@@ -4702,12 +4702,23 @@ function scrollChatToBottom() {
             <textarea id="tasksMessage" placeholder="Message for students (e.g., Complete these 3 tests to stay on track!)" 
                       class="w-full p-5 rounded-xl text-xl h-40"></textarea>
 
+            <!-- UPDATED TASK DATES SECTION -->
             <div class="space-y-4">
               <h4 class="text-xl font-bold">Task Dates (students must submit exam on these days)</h4>
-              <div id="tasksDates" class="space-y-3"></div>
-              <button onclick="addTaskDate()" class="btn bg-purple-600 hover:bg-purple-700 px-8 py-4 text-lg">
-                + Add Date
-              </button>
+              
+              <!-- Date picker + Add button -->
+              <div class="flex gap-4 items-end">
+                <div class="flex-1">
+                  <label class="block text-lg font-medium mb-2">Select Date</label>
+                  <input type="date" id="newTaskDate" class="w-full p-4 rounded-xl text-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                </div>
+                <button onclick="addTaskDate()" class="btn bg-purple-600 hover:bg-purple-700 px-8 py-4 text-lg">
+                  + Add Date
+                </button>
+              </div>
+
+              <!-- List of added dates -->
+              <div id="tasksDates" class="space-y-3 mt-6"></div>
             </div>
           </div>
 
@@ -5071,35 +5082,47 @@ async function loadStudentMessages() {
   studentMessages = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
       function addTaskDate() {
-      let taskInput = document.querySelector('textarea, input[type="text"]');
-      let dateInput = document.querySelector('input[type="date"]');
+    const dateInput = document.getElementById('newTaskDate');
+    const tasksDatesContainer = document.getElementById('tasksDates');
 
-      if (!taskInput) {
-          alert("Error: Could not find the task description box.");
-          return;
-      }
-      if (!dateInput) {
-          alert("Error: Could not find the date picker.");
-          return;
-      }
+    if (!dateInput || !tasksDatesContainer) {
+        alert("Error: Could not find date field or list.");
+        return;
+    }
 
-      const taskText = taskInput.value.trim();
-      const dueDate = dateInput.value;
+    const selectedDate = dateInput.value.trim();
 
-      if (taskText === "") {
-          alert("Please write the task description first.");
-          return;
-      }
-      if (dueDate === "") {
-          alert("Please pick a date.");
-          return;
-      }
+    if (selectedDate === "") {
+        alert("Please select a date first.");
+        return;
+    }
 
-      alert("Task saved successfully!\n\nTask: " + taskText + "\nDue Date: " + dueDate);
+    // Prevent duplicate dates
+    const existingDates = Array.from(tasksDatesContainer.children).map(item => 
+        item.querySelector('span').textContent.trim()
+    );
+    if (existingDates.includes(selectedDate)) {
+        alert("This date has already been added.");
+        return;
+    }
 
-      taskInput.value = "";
-      dateInput.value = "";
-  }
+    // Create new date item
+    const dateItem = document.createElement('div');
+    dateItem.className = "flex justify-between items-center bg-purple-100 p-4 rounded-xl shadow";
+
+    dateItem.innerHTML = `
+        <span class="text-lg font-medium">${selectedDate}</span>
+        <button onclick="this.parentElement.remove()" class="text-red-600 hover:text-red-800 font-bold text-2xl px-3">
+            ×
+        </button>
+    `;
+
+    // Add to list
+    tasksDatesContainer.appendChild(dateItem);
+
+    // Clear input
+    dateInput.value = "";
+}
       // Initial render
       renderLogin();
     </script>
