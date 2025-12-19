@@ -4845,8 +4845,16 @@ function saveTasksConfig() {
   const dates = [];
   const dateItems = document.getElementById('tasksDates').children;
   for (let item of dateItems) {
-    const dateText = item.querySelector('span').textContent.trim();
-    dates.push(dateText);
+    const span = item.querySelector('span');
+    if (span) {
+      const dateText = span.textContent.trim();
+      if (dateText) dates.push(dateText);
+    }
+  }
+
+  if (tasksActive && dates.length === 0) {
+    alert("No valid dates added. Please check the dates list.");
+    return;
   }
 
   const tasksData = {
@@ -4857,11 +4865,13 @@ function saveTasksConfig() {
     createdAt: new Date().toISOString()
   };
 
+  console.log("Saving tasksData:", tasksData);  // Debug: Check in browser console (F12)
+
   firebase.firestore().collection('coachingTasks').doc('current').set(tasksData)
     .then(() => {
       alert("Coaching tasks saved and applied successfully!\n\nAll students will now see the task and dates.");
       
-      // Clear the form after saving
+      // Clear form
       document.getElementById('tasksTitle').value = "";
       document.getElementById('tasksMessage').value = "";
       document.getElementById('tasksDates').innerHTML = "";
