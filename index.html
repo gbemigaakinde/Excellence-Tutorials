@@ -137,7 +137,7 @@
       
       
       const EXAM_DURATION = 120 * 60;   // 2 hours in seconds — keep this for resets if needed
-      
+      let timerInterval = null;
       let user = null;
       let studentData = null;
     // ==== PLACE YOUR FULL QUESTIONS OBJECT HERE ====
@@ -3671,7 +3671,6 @@ sss1: {
       const EXAM_DURATION_MS = EXAM_DURATION_MINUTES * 60 * 1000;
 
       let exam = null;
-      let timerInterval = null;
       let replyingTo = null;
 
       const TEACHER_UID = 'bV4u2V7aakMF7EyYe1bpCXGj4ny1';
