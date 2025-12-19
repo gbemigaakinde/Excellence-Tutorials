@@ -140,6 +140,8 @@
       let timerInterval = null;
       let user = null;
       let studentData = null;
+      let currentTasks = null;  // Will hold active tasks config
+      let studentMessages = []; // For student's private messages
     // ==== PLACE YOUR FULL QUESTIONS OBJECT HERE ====
     const questions = {
     jss1: {
@@ -3894,37 +3896,84 @@ sss1: {
 }
 
       function startSubjectSelection() {
-        const classKey = studentData.class.replace(/\s+/g, '').toLowerCase();
-        const available = questions[classKey] ? Object.keys(questions[classKey]) : [];
+  loadCoachingTasks().then(() => {
+    const classKey = studentData.class.replace(/\s+/g, '').toLowerCase();
+    const available = questions[classKey] ? Object.keys(questions[classKey]) : [];
 
-        document.getElementById('app').innerHTML = `
-          <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
-            <h1 class="text-4xl font-bold mb-6">Welcome, ${studentData.name}!</h1>
-            <p class="text-xl mb-4">Class: ${studentData.class} • School: ${studentData.school}</p>
+    let tasksHTML = '';
+    if (currentTasks && currentTasks.active && currentTasks.dates && currentTasks.dates.length > 0) {
+      tasksHTML = `
+        <div class="glass-dark p-8 rounded-3xl mb-10 text-center shadow-2xl border-4 border-purple-500/50">
+          <h3 class="text-3xl font-bold mb-6 text-purple-700">
+            ${currentTasks.title || 'Coaching Tasks Active! 🌟'}
+          </h3>
+          <p class="text-xl mb-6 opacity-90">${currentTasks.message || 'Complete the tests on these dates to mark them done!'}</p>
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            ${currentTasks.dates.map(dateStr => {
+              const date = new Date(dateStr);
+              const formatted = date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+              const completed = studentData.coachingCompleted && studentData.coachingCompleted[dateStr];
+              return `
+                <div class="glass p-6 rounded-2xl text-center">
+                  <p class="text-xl font-medium">${formatted}</p>
+                  <p class="text-6xl mt-4">${completed ? '✓' : '○'}</p>
+                  <p class="text-sm opacity-70 mt-2">${completed ? 'Completed' : 'Pending'}</p>
+                </div>`;
+            }).join('')}
+          </div>
+          ${currentTasks.dates.every(d => studentData.coachingCompleted && studentData.coachingCompleted[d]) ? 
+            '<p class="text-green-600 text-3xl mt-8 font-bold">Amazing! All tasks completed! 🏆</p>' : ''}
+        </div>`;
+    }
 
-            <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700 text-xl px-12 py-4 mb-8">
-              💬 Public Discussion Chat
-            </button>
-
-            <p class="text-xl mb-6">Select at least 2 subjects to start the exam</p>
-
-            ${available.length === 0 
-              ? '<p class="text-red-500 text-2xl">No subjects available for your class.</p>'
-              : `<div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-                  ${available.map(subject => `
-                    <label class="glass p-8 rounded-2xl cursor-pointer hover:scale-105 transition shadow-lg">
-                      <input type="checkbox" value="${subject}" onchange="toggleSubject(this)" class="w-6 h-6 accent-purple-600">
-                      <span class="block mt-4 text-xl font-medium">${subject}</span>
-                    </label>`).join('')}
-                </div>
-                <button onclick="startExam()" id="startExamBtn" disabled class="btn text-2xl px-16 py-5">Start Exam</button>`
-            }
-
-            <button onclick="auth.signOut()" class="mt-10 text-sm opacity-70 underline">Logout</button>
+    // Private messages
+    loadStudentMessages().then(() => {
+      let messagesHTML = '';
+      if (studentMessages.length > 0) {
+        messagesHTML = `
+          <div class="space-y-6 mb-10">
+            <h3 class="text-2xl font-bold text-center text-red-600">Messages from Master Timothy</h3>
+            ${studentMessages.map(msg => `
+              <div class="glass-dark p-6 rounded-2xl border-2 border-red-500 bg-red-50">
+                <p class="text-xl font-medium mb-2">${msg.message}</p>
+                <p class="text-sm opacity-70 text-right">Expires: ${new Date(msg.expiresAt.toDate()).toLocaleString()}</p>
+              </div>
+            `).join('')}
           </div>`;
-
-        exam = { step: 'selection', chosen: [] };
       }
+
+      document.getElementById('app').innerHTML = `
+        <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
+          <h1 class="text-4xl font-bold mb-6">Welcome, ${studentData.name}!</h1>
+          <p class="text-xl mb-4">Class: ${studentData.class} • School: ${studentData.school}</p>
+
+          ${messagesHTML}
+
+          ${tasksHTML}
+
+          <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700 text-xl px-12 py-4 mb-8">
+            💬 Public Discussion Chat
+          </button>
+
+          <p class="text-xl mb-6">Select at least 2 subjects to start the exam</p>
+
+          ${available.length === 0 
+            ? '<p class="text-red-500 text-2xl">No subjects available for your class.</p>'
+            : `<div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                ${available.map(subject => `
+                  <label class="glass p-8 rounded-2xl cursor-pointer hover:scale-105 transition shadow-lg">
+                    <input type="checkbox" value="${subject}" onchange="toggleSubject(this)" class="w-6 h-6 accent-purple-600">
+                    <span class="block mt-4 text-xl font-medium">${subject}</span>
+                  </label>`).join('')}
+              </div>
+              <button onclick="startExam()" id="startExamBtn" disabled class="btn text-2xl px-16 py-5">Start Exam</button>`
+          }
+
+          <button onclick="auth.signOut()" class="mt-10 text-sm opacity-70 underline">Logout</button>
+        </div>`;
+    });
+  });
+}
 
       function toggleSubject(checkbox) {
         if (checkbox.checked) {
@@ -4181,59 +4230,76 @@ sss1: {
   }, 1000);
 }
       async function submitExam() {
-        if (!confirm("Are you sure you want to submit your exam? You cannot change answers after this.")) return;
+  if (!confirm("Are you sure you want to submit your exam? You cannot change answers after this.")) return;
 
-        clearInterval(timerInterval);
-        const submitBtn = document.querySelector('button[onclick="submitExam()"]');
-        setButtonLoading(submitBtn);
+  clearInterval(timerInterval);
+  const submitBtn = document.querySelector('button[onclick="submitExam()"]');
+  setButtonLoading(submitBtn);
 
-        try {
-          const result = {
-            name: studentData.name,
-            class: studentData.class,
-            school: studentData.school,
-            subjects: exam.subjects,
-            scores: {},
-            correctCounts: {},
-            percentage: 0,
-            grade: '',
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-          };
+  try {
+    const result = {
+      name: studentData.name,
+      class: studentData.class,
+      school: studentData.school,
+      subjects: exam.subjects,
+      scores: {},
+      correctCounts: {},
+      percentage: 0,
+      grade: '',
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    };
 
-          let totalCorrect = 0;
-          let totalQuestions = 0;
+    let totalCorrect = 0;
+    let totalQuestions = 0;
 
-          for (const subj of exam.subjects) {
-            const qs = exam.questions[subj];
-            let correct = 0;
-            qs.forEach((q, i) => {
-              if (exam.answers[`${subj}-${i}`] === q.ans) correct++;
-            });
-            const score = Math.round((correct / qs.length) * 100);
-            result.correctCounts[subj] = correct;
-            result.scores[subj] = score;
-            totalCorrect += correct;
-            totalQuestions += qs.length;
-          }
+    for (const subj of exam.subjects) {
+      const qs = exam.questions[subj];
+      let correct = 0;
+      qs.forEach((q, i) => {
+        if (exam.answers[`${subj}-${i}`] === q.ans) correct++;
+      });
+      const score = Math.round((correct / qs.length) * 100);
+      result.correctCounts[subj] = correct;
+      result.scores[subj] = score;
+      totalCorrect += correct;
+      totalQuestions += qs.length;
+    }
 
-          result.percentage = Math.round((totalCorrect / totalQuestions) * 100);
-          if (result.percentage >= 80) result.grade = 'A';
-          else if (result.percentage >= 70) result.grade = 'B';
-          else if (result.percentage >= 60) result.grade = 'C';
-          else if (result.percentage >= 50) result.grade = 'D';
-          else result.grade = 'F';
+    result.percentage = Math.round((totalCorrect / totalQuestions) * 100);
+    if (result.percentage >= 80) result.grade = 'A';
+    else if (result.percentage >= 70) result.grade = 'B';
+    else if (result.percentage >= 60) result.grade = 'C';
+    else if (result.percentage >= 50) result.grade = 'D';
+    else result.grade = 'F';
 
-          await db.collection('results').add(result);
-          await db.collection('ongoingExams').doc(user).delete();
+    await db.collection('results').add(result);
+    await db.collection('ongoingExams').doc(user).delete();
 
-          renderResults(result);
-        } catch (err) {
-          console.error(err);
-          alert("Submission failed. Please try again.");
-        } finally {
-          setButtonLoading(submitBtn, false);
-        }
+    // ============ NEW: Auto-mark coaching task for today ============
+    if (currentTasks && currentTasks.active && currentTasks.dates && Array.isArray(currentTasks.dates)) {
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+
+      if (currentTasks.dates.includes(todayStr)) {
+        // Mark this specific date as completed for this student
+        const fieldPath = `coachingCompleted.${todayStr}`;
+        await db.collection('students').doc(user).set({
+          [fieldPath]: true
+        }, { merge: true });
+
+        console.log(`Coaching task marked complete for ${todayStr}`);
       }
+    }
+    // ==================================================================
+
+    renderResults(result);
+  } catch (err) {
+    console.error(err);
+    alert("Submission failed. Please try again.");
+  } finally {
+    setButtonLoading(submitBtn, false);
+  }
+}
 
       function renderResults(result) {
   let resultsHTML = `
@@ -4567,11 +4633,13 @@ function scrollChatToBottom() {
         <button onclick="auth.signOut()" class="btn text-xl px-8 py-4">Logout</button>
       </div>
 
-      <div class="flex justify-center gap-8 mb-12 flex-wrap">
-        <button onclick="showTeacherTab('students')" class="btn text-2xl px-12 py-5" id="tab-students">Students</button>
-        <button onclick="showTeacherTab('results')" class="btn text-2xl px-12 py-5" id="tab-results">Results</button>
-        <button onclick="showTeacherTab('schools')" class="btn text-2xl px-12 py-5" id="tab-schools">Manage Schools</button>
-        <button onclick="showTeacherTab('chat')" class="btn bg-green-600 hover:bg-green-700 text-2xl px-12 py-5" id="tab-chat">Chat</button>
+      <!-- Tabs -->
+      <div class="flex justify-center gap-6 md:gap-8 mb-12 flex-wrap">
+        <button onclick="showTeacherTab('students')" class="btn text-2xl px-10 py-5" id="tab-students">Students</button>
+        <button onclick="showTeacherTab('results')" class="btn text-2xl px-10 py-5" id="tab-results">Results</button>
+        <button onclick="showTeacherTab('schools')" class="btn text-2xl px-10 py-5" id="tab-schools">Schools</button>
+        <button onclick="showTeacherTab('tasks')" class="btn text-2xl px-10 py-5" id="tab-tasks">Tasks & Messages</button>
+        <button onclick="showTeacherTab('chat')" class="btn bg-green-600 hover:bg-green-700 text-2xl px-10 py-5" id="tab-chat">Chat</button>
       </div>
 
       <!-- Students Tab -->
@@ -4599,9 +4667,79 @@ function scrollChatToBottom() {
         <div id="schoolsList" class="space-y-4"></div>
       </div>
 
+      <!-- Tasks & Messages Tab -->
+      <div id="teacher-tasks" class="hidden">
+        <h2 class="text-3xl font-bold mb-8 text-center">Coaching Tasks & Private Messages</h2>
+
+        <!-- Coaching Tasks Manager -->
+        <div class="glass-dark p-8 rounded-3xl mb-12 max-w-5xl mx-auto shadow-2xl">
+          <h3 class="text-2xl font-bold mb-6 text-purple-700">Coaching Tasks Manager</h3>
+          
+          <label class="flex items-center gap-4 mb-6 cursor-pointer">
+            <input type="checkbox" id="tasksActive" class="w-8 h-8 accent-purple-600">
+            <span class="text-2xl font-medium">Activate Coaching Tasks for All Students</span>
+          </label>
+
+          <div id="tasksConfig" class="space-y-6">
+            <input type="text" id="tasksTitle" placeholder="Title (e.g., Weekend Challenge)" class="w-full p-5 rounded-xl text-xl">
+            <textarea id="tasksMessage" placeholder="Message for students (e.g., Complete these 3 tests to stay on track!)" 
+                      class="w-full p-5 rounded-xl text-xl h-40"></textarea>
+
+            <div class="space-y-4">
+              <h4 class="text-xl font-bold">Task Dates (students must submit exam on these days)</h4>
+              <div id="tasksDates" class="space-y-3"></div>
+              <button onclick="addTaskDate()" class="btn bg-purple-600 hover:bg-purple-700 px-8 py-4 text-lg">
+                + Add Date
+              </button>
+            </div>
+          </div>
+
+          <div class="text-center mt-10">
+            <button onclick="saveTasksConfig()" class="btn bg-green-600 hover:bg-green-700 text-2xl px-16 py-6">
+              Save & Apply Tasks
+            </button>
+          </div>
+        </div>
+
+        <!-- Send Private Message -->
+        <div class="glass-dark p-8 rounded-3xl max-w-5xl mx-auto shadow-2xl">
+          <h3 class="text-2xl font-bold mb-6 text-red-700">Send Private Message to a Student</h3>
+          
+          <select id="msgStudent" class="w-full p-5 rounded-xl text-xl mb-6">
+            <option value="">Select a student...</option>
+          </select>
+          
+          <textarea id="msgText" placeholder="Write your private message here..." 
+                    class="w-full p-5 rounded-xl text-xl h-40 mb-6"></textarea>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div>
+              <label class="text-xl font-medium block mb-3">Message expires in:</label>
+              <select id="msgDuration" class="w-full p-5 rounded-xl text-xl">
+                <option value="3600000">1 hour</option>
+                <option value="86400000">1 day</option>
+                <option value="172800000">2 days</option>
+                <option value="259200000">3 days</option>
+                <option value="604800000">1 week</option>
+                <option value="1209600000">2 weeks</option>
+                <option value="2592000000">30 days</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="text-center">
+            <button onclick="sendPrivateMessage()" class="btn bg-red-600 hover:bg-red-700 text-2xl px-16 py-6">
+              Send Private Message
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Tab -->
       <div id="teacher-chat" class="hidden"></div>
     </div>`;
 
+  // Default to Students tab
   showTeacherTab('students');
 }
 
@@ -4621,6 +4759,88 @@ function scrollChatToBottom() {
   if (tab === 'results') loadAllResults();
   if (tab === 'schools') loadSchoolsList();  // ← Critical: now loads the list
   if (tab === 'chat') openPublicChat();
+    if (tab === 'tasks') loadTasksManager();
+}
+
+async function loadTasksManager() {
+  const snap = await db.collection('coachingTasks').doc('current').get();
+  const data = snap.exists ? snap.data() : { active: false, dates: [], title: '', message: '' };
+
+  document.getElementById('tasksActive').checked = data.active;
+  document.getElementById('tasksTitle').value = data.title || '';
+  document.getElementById('tasksMessage').value = data.message || '';
+
+  const datesContainer = document.getElementById('tasksDates');
+  datesContainer.innerHTML = '';
+  (data.dates || []).forEach(date => addDateField(date));
+
+  // Load students for messaging
+  const select = document.getElementById('msgStudent');
+  const studentsSnap = await db.collection('students').get();
+  select.innerHTML = '<option value="">Select student...</option>';
+  studentsSnap.forEach(doc => {
+    const s = doc.data();
+    select.innerHTML += `<option value="${doc.id}">${s.name} (${s.class})</option>`;
+  });
+}
+
+function addDateField(value = '') {
+  const container = document.getElementById('tasksDates');
+  const div = document.createElement('div');
+  div.className = 'flex gap-4';
+  div.innerHTML = `
+    <input type="date" value="${value}" class="flex-1 p-4 rounded-xl text-lg">
+    <button onclick="this.parentElement.remove()" class="text-red-500 text-2xl">×</button>
+  `;
+  container.appendChild(div);
+}
+
+async function saveTasksConfig() {
+  const active = document.getElementById('tasksActive').checked;
+  const title = document.getElementById('tasksTitle').value.trim();
+  const message = document.getElementById('tasksMessage').value.trim();
+  const dates = Array.from(document.querySelectorAll('#tasksDates input[type="date"]'))
+    .map(input => input.value)
+    .filter(v => v);
+
+  if (active && dates.length === 0) {
+    alert("Add at least one date when activating tasks.");
+    return;
+  }
+
+  const data = { active, title, message, dates };
+
+  if (active) {
+    await db.collection('coachingTasks').doc('current').set(data);
+  } else {
+    await db.collection('coachingTasks').doc('current').delete();
+  }
+
+  alert(active ? "Coaching tasks activated!" : "Coaching tasks deactivated.");
+}
+
+async function sendPrivateMessage() {
+  const studentId = document.getElementById('msgStudent').value;
+  const text = document.getElementById('msgText').value.trim();
+  const duration = parseInt(document.getElementById('msgDuration').value);
+
+  if (!studentId || !text) {
+    alert("Select a student and write a message.");
+    return;
+  }
+
+  const expiresAt = new Date(Date.now() + duration);
+
+  await db.collection('privateMessages').add({
+    recipientId: studentId,
+    message: text,
+    sentAt: new Date(),
+    expiresAt: expiresAt,
+    sentBy: "Master Timothy"
+  });
+
+  alert("Message sent! It will disappear automatically.");
+  document.getElementById('msgText').value = '';
 }
 
       async function addSchool() {
@@ -4796,7 +5016,25 @@ async function deleteSchool(id, schoolName) {
         if (!confirm("Delete this result permanently?")) return;
         await db.collection('results').doc(id).delete();
       }
+async function loadCoachingTasks() {
+  const snap = await db.collection('coachingTasks').doc('current').get();
+  if (snap.exists) {
+    currentTasks = snap.data();
+    currentTasks.active = true;
+  } else {
+    currentTasks = { active: false };
+  }
+}
 
+async function loadStudentMessages() {
+  if (!user) return;
+  const snap = await db.collection('privateMessages')
+    .where('recipientId', '==', user)
+    .where('expiresAt', '>', new Date())
+    .orderBy('expiresAt', 'desc')
+    .get();
+  studentMessages = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
       // Initial render
       renderLogin();
     </script>
