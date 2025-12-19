@@ -4824,16 +4824,6 @@ function addDateField(value = '') {
 function saveTasksConfig() {
   const tasksActive = document.getElementById('tasksActive').checked;
 
-  if (tasksActive) {
-    const tasksDatesContainer = document.getElementById('tasksDates');
-    const addedDates = tasksDatesContainer.children;
-
-    if (addedDates.length === 0) {
-      alert("Please add at least one date when activating tasks.");
-      return;
-    }
-  }
-
   const title = document.getElementById('tasksTitle').value.trim();
   const message = document.getElementById('tasksMessage').value.trim();
 
@@ -4842,46 +4832,62 @@ function saveTasksConfig() {
     return;
   }
 
-  const dates = [];
+  // Collect new dates added in the form (optional)
+  const newDates = [];
   const dateItems = document.getElementById('tasksDates').children;
   for (let item of dateItems) {
     const span = item.querySelector('span');
     if (span) {
       const dateText = span.textContent.trim();
-      if (dateText) dates.push(dateText);
+      if (dateText) newDates.push(dateText);
     }
   }
 
-  if (tasksActive && dates.length === 0) {
-    alert("No valid dates added. Please check the dates list.");
-    return;
-  }
+  // Load existing tasks to preserve old dates if not re-adding
+  db.collection('coachingTasks').doc('current').get().then(snap => {
+    let existingDates = [];
+    if (snap.exists) {
+      existingDates = snap.data().dates || [];
+    }
 
-  const tasksData = {
-    active: tasksActive,
-    title: title || "Coaching Task",
-    message: message || "Please complete the required exams on the scheduled dates.",
-    dates: dates,
-    createdAt: new Date().toISOString()
-  };
+    // Use new dates if added; otherwise keep existing
+    const finalDates = newDates.length > 0 ? newDates : existingDates;
 
-  console.log("Saving tasksData:", tasksData);  // Debug: Check in browser console (F12)
+    // Optional: Enforce at least one date only if activating AND no existing
+    if (tasksActive && finalDates.length === 0 && !snap.exists) {
+      alert("Please add at least one date when activating tasks for the first time.");
+      return;
+    }
 
-  firebase.firestore().collection('coachingTasks').doc('current').set(tasksData)
-    .then(() => {
-      alert("Coaching tasks saved and applied successfully!\n\nAll students will now see the task and dates.");
-      
-      // Clear form
-      document.getElementById('tasksTitle').value = "";
-      document.getElementById('tasksMessage').value = "";
-      document.getElementById('tasksDates').innerHTML = "";
-      document.getElementById('newTaskDate').value = "";
-      document.getElementById('tasksActive').checked = false;
-    })
-    .catch((error) => {
-      alert("Error saving tasks: " + error.message);
-      console.error("Firebase error:", error);
-    });
+    const tasksData = {
+      active: tasksActive,
+      title: title || "Coaching Task",
+      message: message || "Please complete the required exams on the scheduled dates.",
+      dates: finalDates,
+      createdAt: new Date().toISOString()
+    };
+
+    console.log("Saving tasksData:", tasksData);  // Debug
+
+    firebase.firestore().collection('coachingTasks').doc('current').set(tasksData)
+      .then(() => {
+        alert("Coaching tasks updated successfully!\n\nChanges (including edited message) will appear on student portals.");
+        
+        // Clear form (optional for editing)
+        document.getElementById('tasksTitle').value = "";
+        document.getElementById('tasksMessage').value = "";
+        document.getElementById('tasksDates').innerHTML = "";
+        document.getElementById('newTaskDate').value = "";
+        // Do NOT uncheck active - keep it as is
+      })
+      .catch((error) => {
+        alert("Error saving tasks: " + error.message);
+        console.error("Firebase error:", error);
+      });
+  }).catch(err => {
+    console.error("Error fetching existing tasks:", err);
+    alert("Could not load existing tasks. Try again.");
+  });
 }
 
 async function sendPrivateMessage() {
