@@ -127,6 +127,11 @@
       const auth = firebase.auth();
       const db = firebase.firestore();
 
+      let timeLeft = 120 * 60;          // 2 hours in seconds
+      let timerInterval = null;
+      let examStarted = false;          // tracks if exam has begun
+      const EXAM_DURATION = 120 * 60;   // 2 hours in seconds — keep this for resets if needed
+      
       let user = null;
       let studentData = null;
     // ==== PLACE YOUR FULL QUESTIONS OBJECT HERE ====
@@ -3984,8 +3989,8 @@ sss1: {
           </p>
         </div>
 
-        <button onclick="beginExamWithModal()" 
-        class="px-8 py-4 bg-green-600 text-white text-lg font-bold rounded-lg hover:bg-green-700 transition">
+       <button onclick="beginExamWithModal()" 
+        class="px-6 py-3 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition shadow-sm">
   Okay, I understand — Start Exam Now
 </button>
 
@@ -3996,26 +4001,51 @@ sss1: {
   document.body.insertAdjacentHTML('beforeend', modalHTML);
 }
 
-      
+      // === EXAM PAGE LOAD LOGIC ===
+window.addEventListener('load', () => {
+  // Check if exam was already started (from localStorage)
+  if (localStorage.getItem('examStarted') === 'true') {
+    examStarted = true;
+    timeLeft = parseInt(localStorage.getItem('examTimeLeft')) || 0;
+
+    if (timeLeft > 0) {
+      startTimer();                    // resume countdown immediately
+    } else {
+      // Time already up
+      const timerEl = document.getElementById('timerDisplay');
+      if (timerEl) {
+        timerEl.textContent = "00:00:00";
+        timerEl.className = "text-4xl md:text-5xl font-bold text-red-500 animate-pulse";
+      }
+    }
+  } else {
+    // First time — show instructions modal
+    showExamInstructionsModal();
+  }
+});
       function beginExamWithModal() {
-  // Instantly remove/hide the modal
+  // Remove modal
   const modal = document.getElementById('examInstructionsModal');
-  if (modal) modal.remove();  // or modal.classList.add('hidden') if you use hidden class
+  if (modal) modal.remove();
 
-  // Set up and start timer immediately (local)
-  timeLeft = 120 * 60;          // 2 hours — change if needed
-  examStartTime = Date.now();
+  // Start exam locally
+  timeLeft = EXAM_DURATION;           // 120 * 60 seconds
+  examStarted = true;
 
-  updateTimerDisplay();         // Shows 02:00:00 instantly → no freeze!
-  startTimer();                 // Begins countdown right away
+  // Save state so refresh remembers we started
+  localStorage.setItem('examStarted', 'true');
+  localStorage.setItem('examTimeLeft', timeLeft);
 
-  // Optional: sync official start time to Firestore in background
+  // Start timer instantly
+  startTimer();
+
+  // Background: tell Firestore we started (doesn't affect timer)
   if (window.db && user) {
-    db.collection('ongoingExams').doc(user).update({
+    db.collection('ongoingExams').doc(user).set({
       startTime: firebase.firestore.FieldValue.serverTimestamp(),
-      localStartTime: examStartTime
-    }).catch(err => {
-      console.warn("Failed to sync start time (non-critical):", err);
+      status: 'active'
+    }, { merge: true }).catch(err => {
+      console.warn("Could not save start time to server (timer still works):", err);
     });
   }
 }
@@ -4137,35 +4167,16 @@ sss1: {
       function startTimer() {
   if (timerInterval) clearInterval(timerInterval);
 
-  // Immediate update when timer starts
+  // Update immediately and then every second
   updateTimerDisplay();
-
-  // Update every second
   timerInterval = setInterval(updateTimerDisplay, 1000);
 }
       function updateTimerDisplay() {
-  if (!exam || !exam.startTime) return;
-
-  const now = Date.now();
-  let startTimeMs;
-
-  if (typeof exam.startTime.toDate === 'function') {
-    startTimeMs = exam.startTime.toDate().getTime();
-  } else if (exam.startTime instanceof Date) {
-    startTimeMs = exam.startTime.getTime();
-  } else if (typeof exam.startTime === 'object' && exam.startTime.seconds) {
-    startTimeMs = exam.startTime.seconds * 1000;
-  } else {
-    startTimeMs = now; // fallback
-  }
-
-  const elapsed = now - startTimeMs;
-  let remaining = EXAM_DURATION_MS - elapsed;
-
   const timerEl = document.getElementById('timerDisplay');
   if (!timerEl) return;
 
-  if (remaining <= 0) {
+  if (timeLeft <= 0) {
+    timeLeft = 0;
     clearInterval(timerInterval);
     timerEl.textContent = "00:00:00";
     timerEl.className = "text-4xl md:text-5xl font-bold text-red-500 animate-pulse";
@@ -4174,13 +4185,17 @@ sss1: {
     return;
   }
 
-  const hours = String(Math.floor(remaining / 3600000)).padStart(2, '0');
-  const mins = String(Math.floor((remaining % 3600000) / 60000)).padStart(2, '0');
-  const secs = String(Math.floor((remaining % 60000) / 1000)).padStart(2, '0');
+  const hours = String(Math.floor(timeLeft / 3600)).padStart(2, '0');
+  const mins = String(Math.floor((timeLeft % 3600) / 60)).padStart(2, '0');
+  const secs = String(timeLeft % 60).padStart(2, '0');
+
   timerEl.textContent = `${hours}:${mins}:${secs}`;
 
-  // Color logic: Green >20 min, Yellow 10–20 min, Red <10 min + pulse
-  const minutesLeft = Math.floor(remaining / 60000);
+  // Save remaining time for refresh recovery
+  localStorage.setItem('examTimeLeft', timeLeft);
+
+  // Color changes
+  const minutesLeft = Math.floor(timeLeft / 60);
   if (minutesLeft > 20) {
     timerEl.className = "text-4xl md:text-5xl font-bold text-green-500";
   } else if (minutesLeft > 10) {
@@ -4188,6 +4203,9 @@ sss1: {
   } else {
     timerEl.className = "text-4xl md:text-5xl font-bold text-red-500 animate-pulse";
   }
+
+  // Decrease for next second
+  timeLeft--;
 }
       async function submitExam() {
         if (!confirm("Are you sure you want to submit your exam? You cannot change answers after this.")) return;
