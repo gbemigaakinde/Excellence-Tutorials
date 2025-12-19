@@ -4841,28 +4841,65 @@ function addDateField(value = '') {
   container.appendChild(div);
 }
 
-async function saveTasksConfig() {
-  const active = document.getElementById('tasksActive').checked;
-  const title = document.getElementById('tasksTitle').value.trim();
-  const message = document.getElementById('tasksMessage').value.trim();
-  const dates = Array.from(document.querySelectorAll('#tasksDates input[type="date"]'))
-    .map(input => input.value)
-    .filter(v => v);
+function saveTasksConfig() {
+    // Get the checkbox state
+    const tasksActive = document.getElementById('tasksActive').checked;
 
-  if (active && dates.length === 0) {
-    alert("Add at least one date when activating tasks.");
-    return;
-  }
+    // If tasks are activated, we MUST have at least one date
+    if (tasksActive) {
+        const tasksDatesContainer = document.getElementById('tasksDates');
+        const addedDates = tasksDatesContainer.children;
 
-  const data = { active, title, message, dates };
+        if (addedDates.length === 0) {
+            alert("Please add at least one date when activating tasks.");
+            return;
+        }
+    }
 
-  if (active) {
-    await db.collection('coachingTasks').doc('current').set(data);
-  } else {
-    await db.collection('coachingTasks').doc('current').delete();
-  }
+    // Get title and message
+    const title = document.getElementById('tasksTitle').value.trim();
+    const message = document.getElementById('tasksMessage').value.trim();
 
-  alert(active ? "Coaching tasks activated!" : "Coaching tasks deactivated.");
+    // Optional: require title if tasks are active
+    if (tasksActive && title === "") {
+        alert("Please enter a title for the coaching task.");
+        return;
+    }
+
+    // Collect all the added dates
+    const dates = [];
+    const dateItems = document.getElementById('tasksDates').children;
+    for (let item of dateItems) {
+        const dateText = item.querySelector('span').textContent.trim();
+        dates.push(dateText);
+    }
+
+    // Prepare the data to save
+    const tasksData = {
+        active: tasksActive,
+        title: title || "Coaching Task",  // default if empty
+        message: message || "Please complete the required exams on the scheduled dates.",
+        dates: dates,  // array of dates like ["2025-12-19", "2025-12-26", "2026-01-02"]
+        createdAt: new Date().toISOString()
+    };
+
+    // Save to Firebase (assuming you use Realtime Database or Firestore)
+    // Change this part if your database path is different
+    firebase.database().ref('coachingTasks').set(tasksData)
+        .then(() => {
+            alert("Coaching tasks saved and applied successfully!\n\nAll students will now see the task and dates.");
+            
+            // Optional: clear the form after saving
+            document.getElementById('tasksTitle').value = "";
+            document.getElementById('tasksMessage').value = "";
+            document.getElementById('tasksDates').innerHTML = "";  // clear date list
+            document.getElementById('newTaskDate').value = "";
+            document.getElementById('tasksActive').checked = false;
+        })
+        .catch((error) => {
+            alert("Error saving tasks: " + error.message);
+            console.error(error);
+        });
 }
 
 async function sendPrivateMessage() {
