@@ -9,8 +9,6 @@
     <link rel="icon" href="IMG_4512.png" type="image/png">
     <link rel="apple-touch-icon" href="IMG_4512.png">
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Firebase SDKs (compat mode) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -112,6 +110,9 @@
   </head>
   <body class="bg-gradient-to-br from-indigo-50 via-white to-purple-50">
     <div id="app" class="min-h-screen flex items-center justify-center p-6"></div>
+   <!-- Tailwind CDN — moved here -->
+  <script src="https://cdn.tailwindcss.com"></script>
+    
     <script>
       // Firebase Config
       const firebaseConfig = {
@@ -4736,11 +4737,6 @@ async function deleteSchool(id, schoolName) {
   }
 }
       
-async function deleteSchool(id) {
-  if (confirm("Delete this school name? Students using it will need to re-register.")) {
-    await db.collection('schools').doc(id).delete();
-  }
-}
       function loadStudentsList() {
   const container = document.getElementById('studentsList');
   container.innerHTML = '<p class="text-center text-2xl">Loading students...</p>';
