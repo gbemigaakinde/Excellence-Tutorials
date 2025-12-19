@@ -3896,6 +3896,12 @@ sss1: {
 }
 
       function startSubjectSelection() {
+  // === CRITICAL FIX: Initialize exam object if it doesn't exist ===
+  if (!exam) {
+    exam = { chosen: [] };
+  }
+  // ================================================================
+
   loadCoachingTasks().then(() => {
     const classKey = studentData.class.replace(/\s+/g, '').toLowerCase();
     const available = questions[classKey] ? Object.keys(questions[classKey]) : [];
@@ -3976,13 +3982,24 @@ sss1: {
 }
 
       function toggleSubject(checkbox) {
-        if (checkbox.checked) {
-          exam.chosen.push(checkbox.value);
-        } else {
-          exam.chosen = exam.chosen.filter(s => s !== checkbox.value);
-        }
-        document.getElementById('startExamBtn').disabled = exam.chosen.length < 2;
-      }
+  // Safety: ensure exam and chosen array exist
+  if (!exam) exam = { chosen: [] };
+  if (!Array.isArray(exam.chosen)) exam.chosen = [];
+
+  if (checkbox.checked) {
+    if (!exam.chosen.includes(checkbox.value)) {
+      exam.chosen.push(checkbox.value);
+    }
+  } else {
+    exam.chosen = exam.chosen.filter(s => s !== checkbox.value);
+  }
+
+  // Enable/disable Start Exam button
+  const startBtn = document.getElementById('startExamBtn');
+  if (startBtn) {
+    startBtn.disabled = exam.chosen.length < 2;
+  }
+}
 
       async function startExam() {
   if (exam.chosen.length < 2) {
