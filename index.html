@@ -3906,38 +3906,6 @@ sss1: {
     const classKey = studentData.class.replace(/\s+/g, '').toLowerCase();
     const available = questions[classKey] ? Object.keys(questions[classKey]) : [];
 
-    let tasksHTML = '';
-    if (currentTasks && currentTasks.active && currentTasks.dates && currentTasks.dates.length > 0) {
-      tasksHTML = `
-        <div class="glass-dark p-8 rounded-3xl mb-10 shadow-2xl border-4 border-purple-500/50">
-          <h3 class="text-3xl font-bold mb-6 text-purple-700">
-            ${currentTasks.title || 'Coaching Tasks Active! 🌟'}
-          </h3>
-          ${currentTasks.message 
-            ? '<p class="text-lg leading-relaxed mb-6 text-left">' + 
-              currentTasks.message
-                .replace(/\n\n/g, '</p><p class="text-lg leading-relaxed mb-6 text-left">')
-                .replace(/\n/g, '<br>') +
-              '</p>'
-            : '<p class="text-lg leading-relaxed mb-6 text-left">Complete the tests on these dates to mark them done!</p>'}
-          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            ${currentTasks.dates.map(dateStr => {
-              const date = new Date(dateStr);
-              const formatted = date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-              const completed = studentData.coachingCompleted && studentData.coachingCompleted[dateStr];
-              return `
-                <div class="glass p-6 rounded-2xl text-center">
-                  <p class="text-xl font-medium">${formatted}</p>
-                  <p class="text-6xl mt-4">${completed ? '✓' : '○'}</p>
-                  <p class="text-sm opacity-70 mt-2">${completed ? 'Completed' : 'Pending'}</p>
-                </div>`;
-            }).join('')}
-          </div>
-          ${currentTasks.dates.every(d => studentData.coachingCompleted && studentData.coachingCompleted[d]) ? 
-            '<p class="text-green-600 text-3xl mt-8 font-bold">Amazing! All tasks completed! 🏆</p>' : ''}
-        </div>`;
-    }
-
     // Private messages
     loadStudentMessages().then(() => {
       let messagesHTML = '';
@@ -3961,7 +3929,7 @@ sss1: {
 
           ${messagesHTML}
 
-          ${tasksHTML}
+          <div id="tasksContainer"></div>  <!-- Tasks render here dynamically -->
 
           <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700 text-xl px-12 py-4 mb-8">
             💬 Public Discussion Chat
@@ -3983,6 +3951,9 @@ sss1: {
 
           <button onclick="auth.signOut()" class="mt-10 text-sm opacity-70 underline">Logout</button>
         </div>`;
+
+      // Render tasks immediately after page loads
+      renderTasksHTML();
     });
   });
 }
@@ -4732,6 +4703,9 @@ function scrollChatToBottom() {
             <button onclick="saveTasksConfig()" class="btn bg-green-600 hover:bg-green-700 text-2xl px-16 py-6">
               Save & Apply Tasks
             </button>
+          <button onclick="deleteTasks()" class="btn bg-red-600 hover:bg-red-700 text-2xl px-16 py-6 mt-6">
+             Delete All Tasks
+          </button>
           </div>
         </div>
 
@@ -4848,63 +4822,56 @@ function addDateField(value = '') {
 }
 
 function saveTasksConfig() {
-    // Get the checkbox state
-    const tasksActive = document.getElementById('tasksActive').checked;
+  const tasksActive = document.getElementById('tasksActive').checked;
 
-    // If tasks are activated, we MUST have at least one date
-    if (tasksActive) {
-        const tasksDatesContainer = document.getElementById('tasksDates');
-        const addedDates = tasksDatesContainer.children;
+  if (tasksActive) {
+    const tasksDatesContainer = document.getElementById('tasksDates');
+    const addedDates = tasksDatesContainer.children;
 
-        if (addedDates.length === 0) {
-            alert("Please add at least one date when activating tasks.");
-            return;
-        }
+    if (addedDates.length === 0) {
+      alert("Please add at least one date when activating tasks.");
+      return;
     }
+  }
 
-    // Get title and message
-    const title = document.getElementById('tasksTitle').value.trim();
-    const message = document.getElementById('tasksMessage').value.trim();
+  const title = document.getElementById('tasksTitle').value.trim();
+  const message = document.getElementById('tasksMessage').value.trim();
 
-    // Optional: require title if tasks are active
-    if (tasksActive && title === "") {
-        alert("Please enter a title for the coaching task.");
-        return;
-    }
+  if (tasksActive && title === "") {
+    alert("Please enter a title for the coaching task.");
+    return;
+  }
 
-    // Collect all the added dates
-    const dates = [];
-    const dateItems = document.getElementById('tasksDates').children;
-    for (let item of dateItems) {
-        const dateText = item.querySelector('span').textContent.trim();
-        dates.push(dateText);
-    }
+  const dates = [];
+  const dateItems = document.getElementById('tasksDates').children;
+  for (let item of dateItems) {
+    const dateText = item.querySelector('span').textContent.trim();
+    dates.push(dateText);
+  }
 
-    // Prepare the data to save
-    const tasksData = {
-        active: tasksActive,
-        title: title || "Coaching Task",
-        message: message || "Please complete the required exams on the scheduled dates.",
-        dates: dates,
-        createdAt: new Date().toISOString()
-    };
+  const tasksData = {
+    active: tasksActive,
+    title: title || "Coaching Task",
+    message: message || "Please complete the required exams on the scheduled dates.",
+    dates: dates,
+    createdAt: new Date().toISOString()
+  };
 
-    // THIS IS THE FIXED LINE — using Firestore instead of Realtime Database
-    firebase.firestore().collection('coachingTasks').doc('current').set(tasksData)
-        .then(() => {
-            alert("Coaching tasks saved and applied successfully!\n\nAll students will now see the task and dates.");
-            
-            // Clear the form after saving
-            document.getElementById('tasksTitle').value = "";
-            document.getElementById('tasksMessage').value = "";
-            document.getElementById('tasksDates').innerHTML = "";  // clear date list
-            document.getElementById('newTaskDate').value = "";
-            document.getElementById('tasksActive').checked = false;
-        })
-        .catch((error) => {
-            alert("Error saving tasks: " + error.message);
-            console.error("Firebase error:", error);
-        });
+  firebase.firestore().collection('coachingTasks').doc('current').set(tasksData)
+    .then(() => {
+      alert("Coaching tasks saved and applied successfully!\n\nAll students will now see the task and dates.");
+      
+      // Clear the form after saving
+      document.getElementById('tasksTitle').value = "";
+      document.getElementById('tasksMessage').value = "";
+      document.getElementById('tasksDates').innerHTML = "";
+      document.getElementById('newTaskDate').value = "";
+      document.getElementById('tasksActive').checked = false;
+    })
+    .catch((error) => {
+      alert("Error saving tasks: " + error.message);
+      console.error("Firebase error:", error);
+    });
 }
 
 async function sendPrivateMessage() {
@@ -5104,14 +5071,60 @@ async function deleteSchool(id, schoolName) {
         if (!confirm("Delete this result permanently?")) return;
         await db.collection('results').doc(id).delete();
       }
-async function loadCoachingTasks() {
-  const snap = await db.collection('coachingTasks').doc('current').get();
-  if (snap.exists) {
-    currentTasks = snap.data();
-    currentTasks.active = true;
-  } else {
-    currentTasks = { active: false };
+    
+      function loadCoachingTasks() {
+     return new Promise((resolve) => {
+    db.collection('coachingTasks').doc('current').onSnapshot(snap => {
+      if (snap.exists) {
+        currentTasks = snap.data();
+      } else {
+        currentTasks = { active: false };
+      }
+      resolve();
+      renderTasksHTML();  // Re-render on any change
+    }, err => {
+      console.error(err);
+      currentTasks = { active: false };
+      resolve();
+    });
+  });
+}
+      function renderTasksHTML() {
+  const container = document.getElementById('tasksContainer');
+  if (!container) return;
+
+  let html = '';
+  if (currentTasks && currentTasks.active && currentTasks.dates && currentTasks.dates.length > 0) {
+    html = `
+      <div class="glass-dark p-8 rounded-3xl mb-10 shadow-2xl border-4 border-purple-500/50">
+        <h3 class="text-3xl font-bold mb-6 text-purple-700">
+          ${currentTasks.title || 'Coaching Tasks Active! 🌟'}
+        </h3>
+        ${currentTasks.message 
+          ? '<p class="text-lg leading-relaxed mb-6 text-left">' + 
+            currentTasks.message
+              .replace(/\n\n/g, '</p><p class="text-lg leading-relaxed mb-6 text-left">')
+              .replace(/\n/g, '<br>') +
+            '</p>'
+          : '<p class="text-lg leading-relaxed mb-6 text-left">Complete the tests on these dates to mark them done!</p>'}
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          ${currentTasks.dates.map(dateStr => {
+            const date = new Date(dateStr);
+            const formatted = date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+            const completed = studentData.coachingCompleted && studentData.coachingCompleted[dateStr];
+            return `
+              <div class="glass p-6 rounded-2xl text-center">
+                <p class="text-xl font-medium">${formatted}</p>
+                <p class="text-6xl mt-4">${completed ? '✓' : '○'}</p>
+                <p class="text-sm opacity-70 mt-2">${completed ? 'Completed' : 'Pending'}</p>
+              </div>`;
+          }).join('')}
+        </div>
+        ${currentTasks.dates.every(d => studentData.coachingCompleted && studentData.coachingCompleted[d]) ? 
+          '<p class="text-green-600 text-3xl mt-8 font-bold">Amazing! All tasks completed! 🏆</p>' : ''}
+      </div>`;
   }
+  container.innerHTML = html;
 }
 
 async function loadStudentMessages() {
@@ -5164,6 +5177,17 @@ async function loadStudentMessages() {
 
     // Clear input
     dateInput.value = "";
+}
+
+    async function deleteTasks() {
+  if (confirm("Delete all current tasks? This will remove them from every student's portal immediately.")) {
+    try {
+      await firebase.firestore().collection('coachingTasks').doc('current').delete();
+      alert("All tasks deleted successfully!");
+    } catch (error) {
+      alert("Error deleting tasks: " + error.message);
+    }
+  }
 }
       // Initial render
       renderLogin();
