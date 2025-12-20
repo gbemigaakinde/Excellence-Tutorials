@@ -3874,6 +3874,17 @@ sss1: {
       async function loadOrStartExam() {
   const ongoingSnap = await db.collection('ongoingExams').doc(user).get();
 
+  // Load student profile and set up real-time listener
+  const studentSnap = await db.collection('students').doc(user).get();
+  if (studentSnap.exists) {
+    studentData = studentSnap.data();
+    listenForStudentUpdates();  // Real-time listener for profile changes (e.g., coachingCompleted)
+  } else {
+    alert("Profile not found. Please register again.");
+    await auth.signOut();
+    return;
+  }
+
   if (ongoingSnap.exists) {
     exam = ongoingSnap.data();
 
@@ -5104,6 +5115,19 @@ async function deleteSchool(id, schoolName) {
       resolve();
     });
   });
+}
+
+function listenForStudentUpdates() {
+  if (!user) return;
+  db.collection('students').doc(user).onSnapshot(snap => {
+    if (snap.exists) {
+      studentData = snap.data();
+      // Re-render tasks if on dashboard
+      if (document.getElementById('tasksContainer')) {
+        renderTasksHTML();
+      }
+    }
+  }, err => console.error("Student update listener error:", err));
 }
       function renderTasksHTML() {
   const container = document.getElementById('tasksContainer');
