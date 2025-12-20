@@ -3907,65 +3907,68 @@ sss1: {
 }
 
       function startSubjectSelection() {
-  // === CRITICAL FIX: Initialize exam object if it doesn't exist ===
-  if (!exam) {
-    exam = { chosen: [] };
-  }
-  // ================================================================
+  // Re-load studentData fresh every time dashboard renders (after submit)
+  db.collection('students').doc(user).get().then(snap => {
+    if (snap.exists) {
+      studentData = snap.data();
+    }
 
-  loadCoachingTasks().then(() => {
-    const classKey = studentData.class.replace(/\s+/g, '').toLowerCase();
-    const available = questions[classKey] ? Object.keys(questions[classKey]) : [];
+    if (!exam) exam = { chosen: [] };
 
-    // Private messages
-    loadStudentMessages().then(() => {
-      let messagesHTML = '';
-      if (studentMessages.length > 0) {
-        messagesHTML = `
-          <div class="space-y-6 mb-10">
-            <h3 class="text-2xl font-bold text-center text-red-600">Messages from Master Timothy</h3>
-            ${studentMessages.map(msg => `
-              <div class="glass-dark p-6 rounded-2xl border-2 border-red-500 bg-red-50">
-                <p class="text-xl font-medium mb-2">${msg.message}</p>
-                <p class="text-sm opacity-70 text-right">Expires: ${new Date(msg.expiresAt.toDate()).toLocaleString()}</p>
-              </div>
-            `).join('')}
+    loadCoachingTasks().then(() => {
+      const classKey = studentData.class.replace(/\s+/g, '').toLowerCase();
+      const available = questions[classKey] ? Object.keys(questions[classKey]) : [];
+
+      loadStudentMessages().then(() => {
+        let messagesHTML = '';
+        if (studentMessages.length > 0) {
+          messagesHTML = `
+            <div class="space-y-6 mb-10">
+              <h3 class="text-2xl font-bold text-center text-red-600">Messages from Master Timothy</h3>
+              ${studentMessages.map(msg => `
+                <div class="glass-dark p-6 rounded-2xl border-2 border-red-500 bg-red-50">
+                  <p class="text-xl font-medium mb-2">${msg.message}</p>
+                  <p class="text-sm opacity-70 text-right">Expires: ${new Date(msg.expiresAt.toDate()).toLocaleString()}</p>
+                </div>
+              `).join('')}
+            </div>`;
+        }
+
+        document.getElementById('app').innerHTML = `
+          <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
+            <h1 class="text-4xl font-bold mb-6">Welcome, ${studentData.name}!</h1>
+            <p class="text-xl mb-4">Class: ${studentData.class} • School: ${studentData.school}</p>
+
+            ${messagesHTML}
+
+            <div id="tasksContainer"></div>
+
+            <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700 text-xl px-12 py-4 mb-8">
+              💬 Public Discussion Chat
+            </button>
+
+            <p class="text-xl mb-6">Select at least 2 subjects to start the exam</p>
+
+            ${available.length === 0 
+              ? '<p class="text-red-500 text-2xl">No subjects available for your class.</p>'
+              : `<div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                  ${available.map(subject => `
+                    <label class="glass p-8 rounded-2xl cursor-pointer hover:scale-105 transition shadow-lg">
+                      <input type="checkbox" value="${subject}" onchange="toggleSubject(this)" class="w-6 h-6 accent-purple-600">
+                      <span class="block mt-4 text-xl font-medium">${subject}</span>
+                    </label>`).join('')}
+                </div>
+                <button onclick="startExam()" id="startExamBtn" disabled class="btn text-2xl px-16 py-5">Start Exam</button>`
+            }
+
+            <button onclick="auth.signOut()" class="mt-10 text-sm opacity-70 underline">Logout</button>
           </div>`;
-      }
 
-      document.getElementById('app').innerHTML = `
-        <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
-          <h1 class="text-4xl font-bold mb-6">Welcome, ${studentData.name}!</h1>
-          <p class="text-xl mb-4">Class: ${studentData.class} • School: ${studentData.school}</p>
-
-          ${messagesHTML}
-
-          <div id="tasksContainer"></div>  <!-- Tasks render here dynamically -->
-
-          <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700 text-xl px-12 py-4 mb-8">
-            💬 Public Discussion Chat
-          </button>
-
-          <p class="text-xl mb-6">Select at least 2 subjects to start the exam</p>
-
-          ${available.length === 0 
-            ? '<p class="text-red-500 text-2xl">No subjects available for your class.</p>'
-            : `<div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-                ${available.map(subject => `
-                  <label class="glass p-8 rounded-2xl cursor-pointer hover:scale-105 transition shadow-lg">
-                    <input type="checkbox" value="${subject}" onchange="toggleSubject(this)" class="w-6 h-6 accent-purple-600">
-                    <span class="block mt-4 text-xl font-medium">${subject}</span>
-                  </label>`).join('')}
-              </div>
-              <button onclick="startExam()" id="startExamBtn" disabled class="btn text-2xl px-16 py-5">Start Exam</button>`
-          }
-
-          <button onclick="auth.signOut()" class="mt-10 text-sm opacity-70 underline">Logout</button>
-        </div>`;
-
-      // Render tasks immediately after page loads
-      renderTasksHTML();
+        renderTasksHTML();
+      });
     });
+  }).catch(err => {
+    console.error("Error re-loading studentData:", err);
   });
 }
 
@@ -4053,7 +4056,7 @@ sss1: {
   Okay, I understand — Start Exam Now
 </button>
 
-        <p class="mt-8 text-sm opacity-70">Good luck! You will do great ❤️</p>
+        <p class="mt-8 text-sm opacity-70">Good luck!</p>
       </div>
     </div>`;
 
