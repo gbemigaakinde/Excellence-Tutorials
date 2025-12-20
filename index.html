@@ -4275,7 +4275,7 @@ sss1: {
     else if (result.percentage >= 70) result.grade = 'B';
     else if (result.percentage >= 60) result.grade = 'C';
     else if (result.percentage >= 50) result.grade = 'D';
-    else result.grade = 'F';
+    else result.grade = 'E';
 
     await db.collection('results').add(result);
     await db.collection('ongoingExams').doc(user).delete();
