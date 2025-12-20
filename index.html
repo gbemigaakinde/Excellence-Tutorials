@@ -87,25 +87,30 @@
       }
 
       .btn-loading {
-        opacity: 0.8;
-        cursor: not-allowed;
-        position: relative;
-        padding-right: 3.5rem;
-      }
+  opacity: 0.8;
+  cursor: not-allowed;
+  position: relative;
+  padding-right: 3.5rem !important; /* Force space for spinner */
+}
 
-      .btn-loading::after {
-        content: "";
-        position: absolute;
-        width: 20px;
-        height: 20px;
-        top: 50%;
-        right: 1.5rem;
-        margin-top: -10px;
-        border: 3px solid transparent;
-        border-top-color: white;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
+.btn-loading::after {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  top: 50%;
+  right: 1.5rem;
+  margin-top: -10px;
+  border: 3px solid transparent;
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  z-index: 10; /* Ensure it's on top */
+}
+
+.btn-loading span { /* Hide text overflow */
+  opacity: 0.7;
+}
 
       @keyframes spin {
         to { transform: rotate(360deg); }
