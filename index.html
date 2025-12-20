@@ -8,6 +8,9 @@
     <!-- Favicon -->
     <link rel="icon" href="IMG_4512.png" type="image/png">
     <link rel="apple-touch-icon" href="IMG_4512.png">
+   
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-Avb2QiuDElJ7i2+2jI6v3a7W5pE8K1oK1d5k5p5f9z2g6Q" crossorigin="anonymous">
+    
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -3732,7 +3735,15 @@ sss1: {
 
       <div id="loginDiv">
         <input id="loginEmail" type="email" placeholder="Email" class="w-full mb-4 px-6 py-4 text-lg rounded-xl" required />
-        <input id="loginPass" type="password" placeholder="Password" class="w-full mb-6 px-6 py-4 text-lg rounded-xl" required />
+        
+        <!-- Login Password with Eye Icon -->
+        <div class="relative mb-6">
+          <input id="loginPass" type="password" placeholder="Password" class="w-full px-6 py-4 text-lg rounded-xl pr-12" required />
+          <button type="button" id="toggleLoginPass" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+        
         <button onclick="login()" class="btn w-full text-xl md:text-2xl py-5 mb-4 rounded-xl">LOGIN</button>
         <p class="text-center text-sm text-gray-600 mb-3">
           New student? 
@@ -3762,7 +3773,15 @@ sss1: {
         </select>
 
         <input id="regEmail" type="email" placeholder="Email" class="w-full mb-4 px-6 py-4 text-lg rounded-xl" required />
-        <input id="regPass" type="password" placeholder="Password (6+ characters)" class="w-full mb-4 px-6 py-4 text-lg rounded-xl" required />
+        
+        <!-- Register Password with Eye Icon -->
+        <div class="relative mb-4">
+          <input id="regPass" type="password" placeholder="Password (6+ characters)" class="w-full px-6 py-4 text-lg rounded-xl pr-12" required />
+          <button type="button" id="toggleRegPass" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+        
         <button onclick="register()" class="btn w-full text-xl md:text-2xl py-5 rounded-xl">REGISTER</button>
         <p class="text-center text-sm text-gray-600">
           <span onclick="showLogin()" class="text-purple-600 underline cursor-pointer font-medium">Back to Login</span>
@@ -3794,6 +3813,28 @@ sss1: {
       select.innerHTML = '<option value="" disabled>Error loading schools — try again</option>';
     }
   });
+
+  // Add toggle functionality for eye icons (login password)
+  const toggleLogin = document.getElementById('toggleLoginPass');
+  const passLogin = document.getElementById('loginPass');
+  if (toggleLogin && passLogin) {
+    toggleLogin.addEventListener('click', () => {
+      const type = passLogin.type === 'password' ? 'text' : 'password';
+      passLogin.type = type;
+      toggleLogin.innerHTML = type === 'text' ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+    });
+  }
+
+  // Add toggle functionality for eye icons (register password)
+  const toggleReg = document.getElementById('toggleRegPass');
+  const passReg = document.getElementById('regPass');
+  if (toggleReg && passReg) {
+    toggleReg.addEventListener('click', () => {
+      const type = passReg.type === 'password' ? 'text' : 'password';
+      passReg.type = type;
+      toggleReg.innerHTML = type === 'text' ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+    });
+  }
 }
 
       function showRegister() {
@@ -3841,19 +3882,30 @@ sss1: {
 }
 
       async function login() {
-        const btn = document.querySelector('#loginDiv button');
-        setButtonLoading(btn);
+  const btn = document.querySelector('#loginDiv button');
+  setButtonLoading(btn);
 
-        const email = document.getElementById('loginEmail').value.trim();
-        const pass = document.getElementById('loginPass').value;
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
 
-        try {
-          await auth.signInWithEmailAndPassword(email, pass);
-        } catch (err) {
-          alert("Login failed: " + (err.message || "Check email/password"));
-          setButtonLoading(btn, false);
-        }
-      }
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+    // Success: Firebase redirects or auth state changes
+  } catch (err) {
+    let errorMsg = "Login failed. Please check your email and password.";
+    if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+      errorMsg = "Invalid email or password. Please try again.";
+    } else if (err.code === 'auth/user-disabled') {
+      errorMsg = "This account has been disabled. Contact support.";
+    } else if (err.code === 'auth/too-many-requests') {
+      errorMsg = "Too many failed attempts. Try again later.";
+    }
+    alert(errorMsg);
+    console.error("Auth error:", err.code, err.message);
+  } finally {
+    setButtonLoading(btn, false);
+  }
+}
 
       async function forgotPassword() {
         const email = prompt("Enter your registered email address:");
@@ -3906,70 +3958,71 @@ sss1: {
   }
 }
 
-      function startSubjectSelection() {
-  // Re-load studentData fresh every time dashboard renders (after submit)
-  db.collection('students').doc(user).get().then(snap => {
-    if (snap.exists) {
-      studentData = snap.data();
-    }
+      async function startSubjectSelection() {
+  // Re-load fresh studentData every time (awaited for reliability)
+  const studentSnap = await db.collection('students').doc(user).get();
+  if (studentSnap.exists) {
+    studentData = studentSnap.data();
+  } else {
+    alert("Profile not found.");
+    auth.signOut();
+    return;
+  }
 
-    if (!exam) exam = { chosen: [] };
+  if (!exam) exam = { chosen: [] };
 
-    loadCoachingTasks().then(() => {
-      const classKey = studentData.class.replace(/\s+/g, '').toLowerCase();
-      const available = questions[classKey] ? Object.keys(questions[classKey]) : [];
+  await loadCoachingTasks();  // Await tasks load
 
-      loadStudentMessages().then(() => {
-        let messagesHTML = '';
-        if (studentMessages.length > 0) {
-          messagesHTML = `
-            <div class="space-y-6 mb-10">
-              <h3 class="text-2xl font-bold text-center text-red-600">Messages from Master Timothy</h3>
-              ${studentMessages.map(msg => `
-                <div class="glass-dark p-6 rounded-2xl border-2 border-red-500 bg-red-50">
-                  <p class="text-xl font-medium mb-2">${msg.message}</p>
-                  <p class="text-sm opacity-70 text-right">Expires: ${new Date(msg.expiresAt.toDate()).toLocaleString()}</p>
-                </div>
-              `).join('')}
-            </div>`;
-        }
+  const classKey = studentData.class.replace(/\s+/g, '').toLowerCase();
+  const available = questions[classKey] ? Object.keys(questions[classKey]) : [];
 
-        document.getElementById('app').innerHTML = `
-          <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
-            <h1 class="text-4xl font-bold mb-6">Welcome, ${studentData.name}!</h1>
-            <p class="text-xl mb-4">Class: ${studentData.class} • School: ${studentData.school}</p>
+  await loadStudentMessages();  // Await messages load
 
-            ${messagesHTML}
+  let messagesHTML = '';
+  if (studentMessages.length > 0) {
+    messagesHTML = `
+      <div class="space-y-6 mb-10">
+        <h3 class="text-2xl font-bold text-center text-red-600">Messages from Master Timothy</h3>
+        ${studentMessages.map(msg => `
+          <div class="glass-dark p-6 rounded-2xl border-2 border-red-500 bg-red-50">
+            <p class="text-xl font-medium mb-2">${msg.message}</p>
+            <p class="text-sm opacity-70 text-right">Expires: ${new Date(msg.expiresAt.toDate()).toLocaleString()}</p>
+          </div>
+        `).join('')}
+      </div>`;
+  }
 
-            <div id="tasksContainer"></div>
+  document.getElementById('app').innerHTML = `
+    <div class="max-w-4xl mx-auto glass p-10 mt-10 rounded-3xl text-center">
+      <h1 class="text-4xl font-bold mb-6">Welcome, ${studentData.name}!</h1>
+      <p class="text-xl mb-4">Class: ${studentData.class} • School: ${studentData.school}</p>
 
-            <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700 text-xl px-12 py-4 mb-8">
-              💬 Public Discussion Chat
-            </button>
+      ${messagesHTML}
 
-            <p class="text-xl mb-6">Select at least 2 subjects to start the exam</p>
+      <div id="tasksContainer"></div>
 
-            ${available.length === 0 
-              ? '<p class="text-red-500 text-2xl">No subjects available for your class.</p>'
-              : `<div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-                  ${available.map(subject => `
-                    <label class="glass p-8 rounded-2xl cursor-pointer hover:scale-105 transition shadow-lg">
-                      <input type="checkbox" value="${subject}" onchange="toggleSubject(this)" class="w-6 h-6 accent-purple-600">
-                      <span class="block mt-4 text-xl font-medium">${subject}</span>
-                    </label>`).join('')}
-                </div>
-                <button onclick="startExam()" id="startExamBtn" disabled class="btn text-2xl px-16 py-5">Start Exam</button>`
-            }
+      <button onclick="openPublicChat()" class="btn bg-green-600 hover:bg-green-700 text-xl px-12 py-4 mb-8">
+        💬 Public Discussion Chat
+      </button>
 
-            <button onclick="auth.signOut()" class="mt-10 text-sm opacity-70 underline">Logout</button>
-          </div>`;
+      <p class="text-xl mb-6">Select at least 2 subjects to start the exam</p>
 
-        renderTasksHTML();
-      });
-    });
-  }).catch(err => {
-    console.error("Error re-loading studentData:", err);
-  });
+      ${available.length === 0 
+        ? '<p class="text-red-500 text-2xl">No subjects available for your class.</p>'
+        : `<div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            ${available.map(subject => `
+              <label class="glass p-8 rounded-2xl cursor-pointer hover:scale-105 transition shadow-lg">
+                <input type="checkbox" value="${subject}" onchange="toggleSubject(this)" class="w-6 h-6 accent-purple-600">
+                <span class="block mt-4 text-xl font-medium">${subject}</span>
+              </label>`).join('')}
+          </div>
+          <button onclick="startExam()" id="startExamBtn" disabled class="btn text-2xl px-16 py-5">Start Exam</button>`
+      }
+
+      <button onclick="auth.signOut()" class="mt-10 text-sm opacity-70 underline">Logout</button>
+    </div>`;
+
+  renderTasksHTML();  // Render with fresh studentData
 }
 
       function toggleSubject(checkbox) {
