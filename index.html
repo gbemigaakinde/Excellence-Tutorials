@@ -86,21 +86,21 @@
         color: #64748b;
       }
 
-      .btn-loading {
+.btn-loading {
   opacity: 0.8;
   cursor: not-allowed;
   position: relative;
-  padding-right: 3.5rem !important; /* Force space for spinner */
+  padding-right: 4rem
 }
 
 .btn-loading::after {
   content: "";
   position: absolute;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   top: 50%;
   right: 1.5rem;
-  margin-top: -10px;
+  margin-top: -12px;
   border: 3px solid transparent;
   border-top-color: white;
   border-radius: 50%;
@@ -3749,7 +3749,9 @@ sss1: {
           </button>
         </div>
         
-        <button onclick="login()" class="btn w-full text-xl md:text-2xl py-5 mb-4 rounded-xl">LOGIN</button>
+        <button onclick="login()" class="btn w-full text-xl md:text-2xl py-5 mb-4 rounded-xl">
+        <span>LOGIN</span>
+        </button>
         <p class="text-center text-sm text-gray-600 mb-3">
           New student? 
           <span onclick="showRegister()" class="text-purple-600 underline cursor-pointer font-medium">Register</span>
@@ -3787,7 +3789,9 @@ sss1: {
           </button>
         </div>
         
-        <button onclick="register()" class="btn w-full text-xl md:text-2xl py-5 rounded-xl">REGISTER</button>
+        <button onclick="register()" class="btn w-full text-xl md:text-2xl py-5 rounded-xl">
+        <span>REGISTER</span>
+        </button>
         <p class="text-center text-sm text-gray-600">
           <span onclick="showLogin()" class="text-purple-600 underline cursor-pointer font-medium">Back to Login</span>
         </p>
