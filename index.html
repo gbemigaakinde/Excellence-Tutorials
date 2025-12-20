@@ -4053,7 +4053,7 @@ sss1: {
   Okay, I understand — Start Exam Now
 </button>
 
-        <p class="mt-8 text-sm opacity-70">Good luck! You will do great ❤️</p>
+        <p class="mt-8 text-sm opacity-70">Good luck! </p>
       </div>
     </div>`;
 
@@ -4365,11 +4365,11 @@ sss1: {
   document.getElementById('app').innerHTML = resultsHTML;
 
   window.shareOnWhatsApp = () => {
-    let text = `*Excellence Tutorial CBT Result*%0A%0AName: ${result.name}%0AClass: ${result.class}%0ASchool: ${result.school}%0A%0AOverall: ${result.percentage}% — Grade ${result.grade}%0A%0A`;
+    let text = `*Here is my attempt result:*%0A%0AName: ${result.name}%0AClass: ${result.class}%0ASchool: ${result.school}%0A%0AOverall: ${result.percentage}% — Grade ${result.grade}%0A%0A`;
     exam.subjects.forEach(s => {
       text += `${s}: ${result.scores[s]}%25%0A`;
     });
-    text += `%0AThank you, Master Timothy ❤️`;
+    text += `%0AThank you!`;
     window.open(`https://wa.me/?text=${text}`);
   };
 
